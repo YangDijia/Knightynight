@@ -122,7 +122,7 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
       'polygon(0% 0%, 90% 0%, 100% 10%, 100% 100%, 0% 100%)',
       'polygon(2% 0%, 98% 0%, 95% 100%, 5% 100%)',
       'polygon(5% 0%, 100% 2%, 95% 100%, 0% 98%)',
-      'polygon(0% 0%, 100% 0%, 100% 100%, 2% 95%)',
+      'polygon(0% 0%, 100% 0%, 100% 0%, 100% 100%, 2% 95%)',
     ];
     return shapes[parseInt(id) % shapes.length];
   };
@@ -141,8 +141,8 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
     <div className="min-h-full px-4 md:px-16 py-8 w-full max-w-7xl mx-auto relative">
       
       {/* Input Hero */}
-      <div className="flex flex-col md:flex-row gap-12 mb-20 items-stretch">
-        <div className="w-full md:w-2/3 p-8 rounded-sm border border-knight-accent/10 bg-knight-secondary/40 backdrop-blur-xl relative group transition-all duration-500 hover:border-knight-glow/30 hover:shadow-glow shadow-glass"
+      <div className="flex flex-col md:flex-row gap-8 md:gap-12 mb-12 md:mb-20 items-stretch">
+        <div className="w-full md:w-2/3 p-6 md:p-8 rounded-sm border border-knight-accent/10 bg-knight-secondary/40 backdrop-blur-xl relative group transition-all duration-500 hover:border-knight-glow/30 hover:shadow-glow shadow-glass"
              style={{ clipPath: 'polygon(1% 0%, 99% 2%, 100% 98%, 0% 100%)' }}
         >
           <div className="flex items-start gap-4 mb-4">
@@ -157,29 +157,29 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder="Etch your thoughts into the void..."
-            className="w-full bg-transparent border-none outline-none text-knight-accent placeholder-knight-accent/20 font-body text-xl resize-none h-24 tracking-wide"
+            className="w-full bg-transparent border-none outline-none text-knight-accent placeholder-knight-accent/20 font-body text-lg md:text-xl resize-none h-24 tracking-wide"
           />
           {selectedImage && (
-            <div className="mt-4 relative w-32 h-32 rounded-lg overflow-hidden border border-white/20 shadow-lg">
+            <div className="mt-4 relative w-24 h-24 md:w-32 md:h-32 rounded-lg overflow-hidden border border-white/20 shadow-lg">
               <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" />
               <button onClick={() => setSelectedImage(null)} className="absolute top-2 right-2 bg-black/70 rounded-full p-1.5 hover:bg-red-500 text-white"><X className="w-3 h-3" /></button>
             </div>
           )}
-          <div className="flex justify-between items-center mt-6 border-t border-white/5 pt-6">
-            <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 text-knight-accent/50 hover:text-knight-glow transition-colors px-3 py-2 rounded-lg hover:bg-white/5">
+          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center mt-6 border-t border-white/5 pt-6 gap-4 sm:gap-0">
+            <button onClick={() => fileInputRef.current?.click()} className="flex items-center justify-center sm:justify-start gap-2 text-knight-accent/50 hover:text-knight-glow transition-colors px-3 py-2 rounded-lg hover:bg-white/5">
               <ImageIcon className="w-5 h-5" />
               <span className="text-sm font-title tracking-wider">Add Image</span>
             </button>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
-            <button onClick={handlePost} className="flex items-center gap-2 px-8 py-3 bg-knight-glow/10 border border-knight-glow/30 rounded-sm text-knight-glow font-title tracking-widest uppercase hover:bg-knight-glow hover:text-black hover:shadow-glow transition-all duration-300">
+            <button onClick={handlePost} className="flex items-center justify-center gap-2 px-8 py-3 bg-knight-glow/10 border border-knight-glow/30 rounded-sm text-knight-glow font-title tracking-widest uppercase hover:bg-knight-glow hover:text-black hover:shadow-glow transition-all duration-300">
               <Pin className="w-4 h-4" /> <span>Pin</span>
             </button>
           </div>
         </div>
-        <div className="w-full md:w-1/3 flex items-center justify-center text-center p-8">
+        <div className="w-full md:w-1/3 flex items-center justify-center text-center p-4 md:p-8">
            <div className="relative">
              <div className="absolute top-0 left-0 text-6xl text-knight-accent/5 font-serif">"</div>
-             <p className="font-title text-xl italic text-knight-accent/60 leading-relaxed drop-shadow-lg">
+             <p className="font-title text-lg md:text-xl italic text-knight-accent/60 leading-relaxed drop-shadow-lg">
                Voices of travelers echo here, pinned against the passing of time.
              </p>
            </div>
@@ -187,12 +187,12 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
       </div>
 
       {/* Masonry Grid */}
-      <div className="columns-1 md:columns-2 lg:columns-3 gap-8 space-y-12 pb-12">
+      <div className="columns-1 md:columns-2 lg:columns-3 gap-8 space-y-8 md:space-y-12 pb-12">
         {notes.map((note) => (
           <div 
             key={note.id}
             className="break-inside-avoid relative transition-all duration-500 hover:scale-[1.02] cursor-pointer group"
-            style={{ transform: `rotate(${Math.random() * 4 - 2}deg)` }}
+            style={{ transform: `rotate(${Math.random() * 2 - 1}deg)` }}
             onClick={() => setActiveNoteId(note.id)}
           >
             <div className="relative p-6 overflow-hidden border border-white/10 backdrop-blur-md shadow-glass"
@@ -247,16 +247,16 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
         ))}
       </div>
 
-      {/* Detail Modal */}
+      {/* Detail Modal - Full Screen on Mobile, Centered Box on Desktop */}
       {activeNote && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-lg animate-fade-in p-4" onClick={() => setActiveNoteId(null)}>
-            <div className="bg-[#0F1E26] border border-knight-accent/20 w-full max-w-4xl h-[80vh] rounded-xl overflow-hidden flex flex-col md:flex-row shadow-2xl relative" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center bg-black/80 backdrop-blur-lg animate-fade-in md:p-4" onClick={() => setActiveNoteId(null)}>
+            <div className="bg-[#0F1E26] border-t md:border border-knight-accent/20 w-full md:max-w-4xl h-[90vh] md:h-[80vh] rounded-t-2xl md:rounded-xl overflow-hidden flex flex-col md:flex-row shadow-2xl relative" onClick={e => e.stopPropagation()}>
                 <button onClick={() => setActiveNoteId(null)} className="absolute top-4 right-4 text-white/50 hover:text-white z-50 bg-black/50 rounded-full p-2"><X className="w-5 h-5"/></button>
                 
                 {/* Left: The Note */}
-                <div className="w-full md:w-1/2 p-8 bg-[#1A2633] overflow-y-auto flex items-center justify-center relative border-r border-white/5">
+                <div className="w-full md:w-1/2 p-6 md:p-8 bg-[#1A2633] overflow-y-auto flex items-start md:items-center justify-center relative border-b md:border-b-0 md:border-r border-white/5">
                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none"></div>
-                   <div className="relative p-8 shadow-glass w-full"
+                   <div className="relative p-8 shadow-glass w-full my-auto"
                         style={{ 
                             backgroundColor: getNoteColor(activeNote.id),
                             backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")',
@@ -277,16 +277,16 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
                 </div>
 
                 {/* Right: Comments */}
-                <div className="w-full md:w-1/2 flex flex-col bg-[#050B14]">
-                    <div className="p-6 border-b border-white/5">
-                        <h3 className="font-title text-xl text-knight-accent tracking-widest flex items-center gap-2">
+                <div className="w-full md:w-1/2 flex flex-col bg-[#050B14] min-h-[300px]">
+                    <div className="p-4 md:p-6 border-b border-white/5 bg-[#050B14] sticky top-0 z-10">
+                        <h3 className="font-title text-lg md:text-xl text-knight-accent tracking-widest flex items-center gap-2">
                             <MessageCircle className="w-5 h-5" /> Comments
                         </h3>
                     </div>
                     
-                    <div className="flex-grow overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                    <div className="flex-grow overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar pb-24 md:pb-6">
                         {activeNote.comments.length === 0 && (
-                            <p className="text-center text-knight-accent/20 italic mt-12">No echoes yet...</p>
+                            <p className="text-center text-knight-accent/20 italic mt-8 md:mt-12">No echoes yet...</p>
                         )}
                         {activeNote.comments.map(comment => (
                             <div key={comment.id} className="flex gap-4 group">
@@ -302,16 +302,16 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
                         ))}
                     </div>
 
-                    <div className="p-6 bg-[#0F1E26] border-t border-white/5">
+                    <div className="p-4 md:p-6 bg-[#0F1E26] border-t border-white/5 absolute bottom-0 w-full md:relative">
                         <div className="flex gap-3">
-                            <Avatar user={currentUser} className="w-10 h-10 shrink-0 opacity-50" />
+                            <Avatar user={currentUser} className="w-8 md:w-10 h-8 md:h-10 shrink-0 opacity-50" />
                             <div className="flex-grow relative">
                                 <input 
                                     type="text" 
                                     value={commentInput}
                                     onChange={(e) => setCommentInput(e.target.value)}
                                     placeholder="Leave an echo..."
-                                    className="w-full bg-black/20 border border-knight-accent/10 rounded-full px-4 py-2 text-knight-accent focus:outline-none focus:border-knight-glow/50 transition-colors pr-10"
+                                    className="w-full bg-black/20 border border-knight-accent/10 rounded-full px-4 py-2 text-sm md:text-base text-knight-accent focus:outline-none focus:border-knight-glow/50 transition-colors pr-10"
                                     onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
                                 />
                                 <button 

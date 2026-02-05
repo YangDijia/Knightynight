@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Page, UserProfile } from '../types';
-import { Ghost } from 'lucide-react';
+import { Ghost, Menu, X } from 'lucide-react';
 
 interface LayoutProps {
   currentPage: Page;
@@ -11,11 +11,12 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ currentPage, setCurrentPage, currentUser, setCurrentUser, children }) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navItems = [Page.BENCH, Page.BOARD, Page.CALENDAR];
 
   // Intricate, Sharp, Thorny Gothic Corner
   const ThornFiligreeCorner = ({ className }: { className?: string }) => (
-    <svg viewBox="0 0 150 150" className={`w-32 h-32 md:w-48 md:h-48 absolute pointer-events-none text-knight-accent/40 ${className}`}>
+    <svg viewBox="0 0 150 150" className={`w-24 h-24 md:w-48 md:h-48 absolute pointer-events-none text-knight-accent/40 ${className}`}>
       <defs>
         <filter id="sharp-blur">
            <feGaussianBlur in="SourceGraphic" stdDeviation="0.3" />
@@ -48,7 +49,7 @@ const Layout: React.FC<LayoutProps> = ({ currentPage, setCurrentPage, currentUse
   );
 
   const GothicHeader = () => (
-    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-24 pointer-events-none z-40 opacity-40 text-knight-accent">
+    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[300px] md:w-[400px] h-24 pointer-events-none z-40 opacity-40 text-knight-accent">
       <svg viewBox="0 0 400 60" className="w-full h-full">
          <g fill="currentColor" stroke="none">
            <path d="M 200 50 L 195 20 L 200 10 L 205 20 Z" />
@@ -103,32 +104,35 @@ const Layout: React.FC<LayoutProps> = ({ currentPage, setCurrentPage, currentUse
       <div className="fixed inset-0 z-0 pointer-events-none opacity-20 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] animate-pulse-slow"></div>
       <div className="fixed inset-0 z-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_20%,rgba(5,11,20,0.95)_100%)]"></div>
 
-      {/* Ornaments */}
+      {/* Ornaments - Hide on mobile to save space, show on desktop */}
       <div className="fixed inset-0 z-50 pointer-events-none">
         <GothicHeader />
-        <ThornFiligreeCorner className="top-6 left-6" />
-        <ThornFiligreeCorner className="top-6 right-6 transform -scale-x-100" />
-        <ThornFiligreeCorner className="bottom-6 left-6 transform -scale-y-100" />
-        <ThornFiligreeCorner className="bottom-6 right-6 transform -scale-x-100 -scale-y-100" />
+        <ThornFiligreeCorner className="top-4 left-4 md:top-6 md:left-6 hidden md:block" />
+        <ThornFiligreeCorner className="top-4 right-4 md:top-6 md:right-6 transform -scale-x-100 hidden md:block" />
+        <ThornFiligreeCorner className="bottom-4 left-4 md:bottom-6 md:left-6 transform -scale-y-100 hidden md:block" />
+        <ThornFiligreeCorner className="bottom-4 right-4 md:bottom-6 md:right-6 transform -scale-x-100 -scale-y-100 hidden md:block" />
         
-        <div className="absolute top-8 left-1/2 -translate-x-1/2 w-[calc(100%-300px)] h-px border-t border-knight-accent/20 border-dashed"></div>
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[calc(100%-300px)] h-px border-b border-knight-accent/20 border-dashed"></div>
-        <div className="absolute left-8 top-1/2 -translate-y-1/2 h-[calc(100%-300px)] w-px border-l border-knight-accent/20 border-dashed"></div>
-        <div className="absolute right-8 top-1/2 -translate-y-1/2 h-[calc(100%-300px)] w-px border-r border-knight-accent/20 border-dashed"></div>
+        {/* Dashed lines - lighter on mobile */}
+        <div className="absolute top-8 left-1/2 -translate-x-1/2 w-[90%] md:w-[calc(100%-300px)] h-px border-t border-knight-accent/20 border-dashed opacity-50 md:opacity-100"></div>
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[90%] md:w-[calc(100%-300px)] h-px border-b border-knight-accent/20 border-dashed opacity-50 md:opacity-100"></div>
       </div>
 
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 px-8 py-6 flex justify-between items-center">
-        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-knight-bg to-transparent pointer-events-none -z-10"></div>
-        <div className="flex items-center gap-4 group cursor-pointer" onClick={() => setCurrentPage(Page.BENCH)}>
-          <div className="relative p-2 rounded-full border border-knight-accent/20 bg-knight-secondary/40 backdrop-blur-md group-hover:border-knight-glow/60 group-hover:shadow-[0_0_20px_rgba(168,230,207,0.3)] transition-all duration-500">
-            <Ghost className="w-6 h-6 text-knight-accent group-hover:text-white transition-colors" />
+      <nav className="fixed top-0 w-full z-[70] px-4 md:px-8 py-4 md:py-6 flex justify-between items-center">
+        <div className="absolute inset-x-0 top-0 h-24 md:h-32 bg-gradient-to-b from-knight-bg to-transparent pointer-events-none -z-10"></div>
+        
+        {/* Logo Area */}
+        <div className="flex items-center gap-3 md:gap-4 group cursor-pointer relative z-[70]" onClick={() => setCurrentPage(Page.BENCH)}>
+          <div className="relative p-1.5 md:p-2 rounded-full border border-knight-accent/20 bg-knight-secondary/40 backdrop-blur-md group-hover:border-knight-glow/60 group-hover:shadow-[0_0_20px_rgba(168,230,207,0.3)] transition-all duration-500">
+            <Ghost className="w-5 h-5 md:w-6 md:h-6 text-knight-accent group-hover:text-white transition-colors" />
           </div>
-          <span className="font-title text-xl font-bold tracking-[0.2em] text-knight-accent/90 group-hover:text-white transition-colors drop-shadow-lg">
+          <span className="font-title text-lg md:text-xl font-bold tracking-[0.2em] text-knight-accent/90 group-hover:text-white transition-colors drop-shadow-lg">
             KNIGHTYNIGHT
           </span>
         </div>
-        <div className="flex gap-4">
+
+        {/* Desktop Navigation - Hidden on Mobile */}
+        <div className="hidden md:flex gap-4">
           {navItems.map((page) => (
             <button
               key={page}
@@ -147,10 +151,60 @@ const Layout: React.FC<LayoutProps> = ({ currentPage, setCurrentPage, currentUse
             </button>
           ))}
         </div>
+
+        {/* Mobile Menu Toggle */}
+        <button 
+          className="md:hidden relative z-[70] p-2 text-knight-accent"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
       </nav>
 
-      {/* Global User Switcher (Right Side) */}
-      <div className="fixed right-0 top-32 z-[60] flex flex-col gap-6">
+      {/* Mobile Menu Overlay */}
+      <div className={`
+        fixed inset-0 bg-[#050B14]/95 backdrop-blur-xl z-[60] flex flex-col items-center justify-center gap-8 transition-all duration-500 md:hidden
+        ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}
+      `}>
+        <div className="flex flex-col gap-6 w-full px-8 max-w-sm">
+          {navItems.map((page) => (
+            <button
+              key={page}
+              onClick={() => {
+                setCurrentPage(page);
+                setIsMobileMenuOpen(false);
+              }}
+              className={`
+                w-full py-4 text-center border-b border-white/5 font-title text-lg tracking-[0.3em] uppercase transition-colors
+                ${currentPage === page ? 'text-knight-glow border-knight-glow/30' : 'text-knight-accent/60 hover:text-white'}
+              `}
+            >
+              {page}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-8 flex gap-8">
+           {['Knight', 'Hornet'].map((user) => (
+             <button
+               key={user}
+               onClick={() => {
+                 setCurrentUser(user as UserProfile);
+                 setIsMobileMenuOpen(false);
+               }}
+               className={`flex flex-col items-center gap-3 transition-all ${currentUser === user ? 'scale-110' : 'opacity-50'}`}
+             >
+                <div className={`w-16 h-16 relative rounded-full border-2 ${currentUser === user ? 'border-knight-glow shadow-glow' : 'border-knight-accent/20'}`}>
+                    {user === 'Knight' ? <KnightSeal /> : <HornetSeal />}
+                </div>
+                <span className="font-title text-xs tracking-widest uppercase">{user}</span>
+             </button>
+           ))}
+        </div>
+      </div>
+
+      {/* Global User Switcher (Desktop Right Side) */}
+      <div className="hidden md:flex fixed right-0 top-32 z-[60] flex-col gap-6">
         {['Knight', 'Hornet'].map((user) => (
           <button
             key={user}
@@ -177,11 +231,11 @@ const Layout: React.FC<LayoutProps> = ({ currentPage, setCurrentPage, currentUse
         ))}
       </div>
 
-      <main className="flex-grow pt-24 relative z-10 w-full max-w-[1920px] mx-auto">
+      <main className="flex-grow pt-24 relative z-10 w-full max-w-[1920px] mx-auto overflow-x-hidden md:overflow-visible">
         {children}
       </main>
 
-      <footer className="w-full py-8 text-center text-knight-accent/20 text-[10px] uppercase tracking-[0.3em] font-title relative z-50">
+      <footer className="w-full py-6 md:py-8 text-center text-knight-accent/20 text-[8px] md:text-[10px] uppercase tracking-[0.3em] font-title relative z-50">
         <div className="flex justify-center items-center gap-4">
           <span className="h-px w-8 bg-knight-accent/10"></span>
           <p>Hallownest Archive • 2025</p>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Wind, Flame, Dog } from 'lucide-react';
+import { X, Wind, Flame, Dog, Sliders } from 'lucide-react';
 import { UserProfile } from '../types';
 
 interface AudioState {
@@ -49,7 +49,7 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
 
   // Gothic Bench Illustration
   const GothicBenchSVG = () => (
-    <svg viewBox="0 0 400 300" className="w-[600px] h-auto drop-shadow-2xl">
+    <svg viewBox="0 0 400 300" className="w-[300px] md:w-[600px] h-auto drop-shadow-2xl">
       <path d="M 80 250 L 80 280" stroke="#1A2633" strokeWidth="8" strokeLinecap="round" />
       <path d="M 320 250 L 320 280" stroke="#1A2633" strokeWidth="8" strokeLinecap="round" />
       <path d="M 60 150 L 60 250 L 340 250 L 340 150" fill="none" stroke="#2D3A4A" strokeWidth="6" />
@@ -66,7 +66,7 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
   );
 
   const TheKnightSVG = () => (
-    <svg viewBox="0 0 100 150" className="w-32 h-auto drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+    <svg viewBox="0 0 100 150" className="w-16 md:w-32 h-auto drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
        <path d="M 20 80 Q 50 70 80 80 L 90 130 Q 50 140 10 130 Z" fill="#2D3A4A" />
        <path d="M 20 80 Q 10 100 15 120" stroke="#1A2633" strokeWidth="2" fill="none" />
        <path d="M 25 30 C 25 10 75 10 75 30 L 75 60 Q 75 75 50 75 Q 25 75 25 60 Z" fill="#E3DAC9" />
@@ -78,7 +78,7 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
   );
 
   const HornetSVG = () => (
-    <svg viewBox="0 0 100 150" className="w-32 h-auto drop-shadow-[0_0_15px_rgba(255,0,0,0.1)]">
+    <svg viewBox="0 0 100 150" className="w-16 md:w-32 h-auto drop-shadow-[0_0_15px_rgba(255,0,0,0.1)]">
        <path d="M 30 70 Q 50 60 70 70 L 85 140 Q 50 150 15 140 Z" fill="#3D1F1F" stroke="#1A2633" strokeWidth="1" />
        <path d="M 30 70 Q 20 90 25 120" stroke="#1A2633" strokeWidth="1" fill="none" />
        <path d="M 50 20 C 30 20 20 50 30 60 C 40 70 60 70 70 60 C 80 50 70 20 50 20 Z" fill="#E3DAC9" />
@@ -91,21 +91,21 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
   );
 
   return (
-    <div className="relative w-full h-[calc(100vh-140px)] flex flex-col items-center justify-center">
+    <div className="relative w-full min-h-[calc(100vh-140px)] flex flex-col items-center justify-center py-10 md:py-0">
       
-      {/* Scene Container */}
-      <div className="relative z-10 flex flex-col items-center mt-12">
+      {/* Scene Container - Scaled for mobile via CSS transforms or sizes */}
+      <div className="relative z-10 flex flex-col items-center mt-0 md:mt-12 scale-90 md:scale-100 origin-center">
         <div className="relative flex items-end justify-center">
            <div className="relative z-10">
              <GothicBenchSVG />
            </div>
            <div 
-              className={`absolute bottom-[80px] left-[150px] z-20 transition-all duration-1000 ease-in-out ${restingState.Knight ? 'opacity-100 scale-100' : 'opacity-0 scale-90 translate-y-4'}`}
+              className={`absolute bottom-[40px] left-[75px] md:bottom-[80px] md:left-[150px] z-20 transition-all duration-1000 ease-in-out ${restingState.Knight ? 'opacity-100 scale-100' : 'opacity-0 scale-90 translate-y-4'}`}
            >
               <TheKnightSVG />
            </div>
            <div 
-              className={`absolute bottom-[80px] left-[320px] z-20 transition-all duration-1000 ease-in-out ${restingState.Hornet ? 'opacity-100 scale-100' : 'opacity-0 scale-90 translate-y-4'}`}
+              className={`absolute bottom-[40px] left-[160px] md:bottom-[80px] md:left-[320px] z-20 transition-all duration-1000 ease-in-out ${restingState.Hornet ? 'opacity-100 scale-100' : 'opacity-0 scale-90 translate-y-4'}`}
            >
               <HornetSVG />
            </div>
@@ -114,8 +114,8 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
         <button
           onClick={toggleRest}
           className={`
-            mt-12 px-12 py-3 rounded-full border border-knight-accent/20 bg-knight-bg/60 backdrop-blur-md
-            font-title text-xl tracking-[0.3em] text-white uppercase
+            mt-8 md:mt-12 px-8 md:px-12 py-3 rounded-full border border-knight-accent/20 bg-knight-bg/60 backdrop-blur-md
+            font-title text-sm md:text-xl tracking-[0.3em] text-white uppercase
             transition-all duration-500 ease-out shadow-glow
             hover:scale-105 hover:border-knight-glow hover:bg-knight-glow/10 hover:shadow-glow-hover
             active:scale-95
@@ -126,17 +126,28 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
         </button>
 
         {!showMixer && (
-          <p className="mt-8 text-[10px] text-knight-accent/40 font-title tracking-[0.2em] animate-pulse">
-            [ TAB ] for ambience
-          </p>
+          <div className="mt-8 flex flex-col items-center gap-2">
+            <p className="hidden md:block text-[10px] text-knight-accent/40 font-title tracking-[0.2em] animate-pulse">
+              [ TAB ] for ambience
+            </p>
+            {/* Mobile ambience button */}
+            <button 
+              onClick={() => setShowMixer(true)}
+              className="md:hidden flex items-center gap-2 px-4 py-2 bg-knight-secondary/40 rounded-full border border-white/5 text-knight-accent/60 text-xs uppercase tracking-widest"
+            >
+              <Sliders className="w-3 h-3" /> Ambience
+            </button>
+          </div>
         )}
       </div>
 
+      {/* Mixer Panel - Bottom Sheet on Mobile, Right Panel on Desktop */}
       <div 
         className={`
-          absolute right-8 top-1/2 -translate-y-1/2 w-72 bg-knight-secondary/90 backdrop-blur-xl border border-white/10 rounded-3xl
-          transition-all duration-500 ease-spring z-40 p-6 flex flex-col gap-6 shadow-2xl
-          ${showMixer ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0 pointer-events-none'}
+          fixed inset-x-0 bottom-0 md:inset-auto md:right-8 md:top-1/2 md:-translate-y-1/2 md:w-72 
+          bg-knight-secondary/95 md:bg-knight-secondary/90 backdrop-blur-xl border-t md:border border-white/10 rounded-t-3xl md:rounded-3xl
+          transition-all duration-500 ease-spring z-40 p-6 md:p-6 flex flex-col gap-6 shadow-2xl
+          ${showMixer ? 'translate-y-0 md:translate-x-0 opacity-100' : 'translate-y-full md:translate-x-10 opacity-0 pointer-events-none'}
         `}
       >
         <div className="flex justify-between items-center pb-4 border-b border-white/5">
@@ -146,7 +157,7 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
           </button>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-6 pb-6 md:pb-0">
           {[
             { id: 'fire', icon: Flame, label: 'Bonfire' },
             { id: 'wind', icon: Wind, label: 'Howling Cliffs' },
@@ -168,6 +179,14 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
           ))}
         </div>
       </div>
+      
+      {/* Overlay for mobile when mixer is open */}
+      {showMixer && (
+        <div 
+            className="fixed inset-0 bg-black/50 z-30 md:hidden"
+            onClick={() => setShowMixer(false)}
+        />
+      )}
     </div>
   );
 };
