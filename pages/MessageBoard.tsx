@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Note, UserProfile, Comment } from '../types';
 import { Heart, Pin, Image as ImageIcon, X, MessageCircle, Trash2, Send } from 'lucide-react';
 
@@ -47,7 +47,21 @@ const Avatar: React.FC<{ user: UserProfile, className?: string }> = ({ user, cla
 );
 
 const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
-  const [notes, setNotes] = useState<Note[]>(INITIAL_NOTES);
+  // Initialize from localStorage
+  const [notes, setNotes] = useState<Note[]>(() => {
+    try {
+      const saved = localStorage.getItem('knight_notes');
+      return saved ? JSON.parse(saved) : INITIAL_NOTES;
+    } catch (e) {
+      return INITIAL_NOTES;
+    }
+  });
+
+  // Save to localStorage
+  useEffect(() => {
+    localStorage.setItem('knight_notes', JSON.stringify(notes));
+  }, [notes]);
+
   const [inputText, setInputText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

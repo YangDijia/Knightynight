@@ -12,10 +12,20 @@ interface MoodCalendarProps {
 }
 
 const MoodCalendar: React.FC<MoodCalendarProps> = ({ currentUser }) => {
-  const [userData, setUserData] = useState<Record<UserProfile, Record<string, DailyData>>>({
-    'Knight': {},
-    'Hornet': {}
+  // Initialize state from localStorage if available
+  const [userData, setUserData] = useState<Record<UserProfile, Record<string, DailyData>>>(() => {
+    try {
+      const savedData = localStorage.getItem('knight_calendar_data');
+      return savedData ? JSON.parse(savedData) : { 'Knight': {}, 'Hornet': {} };
+    } catch (e) {
+      return { 'Knight': {}, 'Hornet': {} };
+    }
   });
+
+  // Save to localStorage whenever userData changes
+  useEffect(() => {
+    localStorage.setItem('knight_calendar_data', JSON.stringify(userData));
+  }, [userData]);
   
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showJournalModal, setShowJournalModal] = useState(false);

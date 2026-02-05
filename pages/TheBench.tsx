@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Wind, Flame, Dog, Sliders } from 'lucide-react';
 import { UserProfile } from '../types';
 
@@ -20,10 +20,53 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
   
   const [showMixer, setShowMixer] = useState(false);
   const [volumes, setVolumes] = useState<AudioState>({
-    fire: 50,
-    wind: 30,
+    fire: 0,
+    wind: 0,
     dog: 0,
   });
+
+  // Audio References
+  const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
+
+  // Initialize Audio
+  useEffect(() => {
+    const audioFiles = {
+      fire: '/audio/fire.mp3',
+      wind: '/audio/wind.mp3',
+      dog: '/audio/dog.mp3',
+    };
+
+    Object.entries(audioFiles).forEach(([key, src]) => {
+      if (!audioRefs.current[key]) {
+        const audio = new Audio(src);
+        audio.loop = true;
+        audio.volume = 0;
+        audioRefs.current[key] = audio;
+      }
+    });
+
+    return () => {
+      Object.values(audioRefs.current).forEach(audio => {
+        audio.pause();
+        audio.src = '';
+      });
+    };
+  }, []);
+
+  // Sync volumes
+  useEffect(() => {
+    Object.entries(volumes).forEach(([key, vol]) => {
+      const audio = audioRefs.current[key];
+      if (audio) {
+        audio.volume = vol / 100;
+        if (vol > 0 && audio.paused) {
+          audio.play().catch(e => console.log("Audio play failed (interaction required):", e));
+        } else if (vol === 0 && !audio.paused) {
+          audio.pause();
+        }
+      }
+    });
+  }, [volumes]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
