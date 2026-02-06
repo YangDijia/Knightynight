@@ -18,7 +18,7 @@ const INITIAL_NOTES: Note[] = [
   {
     id: '2',
     text: "I found this view near the City of Tears. It reminds me of home.",
-    imageUrl: "https://picsum.photos/id/122/400/300",
+    // Removed external image URL to prevent loading issues in restricted networks
     liked: true,
     timestamp: '10/12/2025, 08:45:15 PM',
     author: 'Knight',
@@ -212,7 +212,9 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
             <div className="relative p-6 overflow-hidden border border-white/10 backdrop-blur-md shadow-glass"
                  style={{ 
                    backgroundColor: getNoteColor(note.id),
-                   backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")',
+                   // Replaced external texture URL with CSS linear-gradient
+                   backgroundImage: 'linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.05) 75%, transparent 75%, transparent)',
+                   backgroundSize: '20px 20px',
                    clipPath: getNoteShape(note.id),
                    borderRadius: '2px'
                  }}
@@ -269,11 +271,13 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
                 
                 {/* Left: The Note */}
                 <div className="w-full md:w-1/2 p-6 md:p-8 bg-[#1A2633] overflow-y-auto flex items-start md:items-center justify-center relative border-b md:border-b-0 md:border-r border-white/5">
-                   <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none"></div>
+                   <div className="absolute inset-0 bg-noise opacity-10 pointer-events-none"></div>
                    <div className="relative p-8 shadow-glass w-full my-auto"
                         style={{ 
                             backgroundColor: getNoteColor(activeNote.id),
-                            backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")',
+                            // Replaced external texture URL with CSS linear-gradient
+                            backgroundImage: 'linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.05) 75%, transparent 75%, transparent)',
+                            backgroundSize: '20px 20px',
                             clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)', // Simpler shape for modal
                             borderRadius: '4px'
                         }}

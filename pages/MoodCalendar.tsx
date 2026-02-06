@@ -181,7 +181,8 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ currentUser }) => {
                      className="h-full bg-gradient-to-r from-orange-900 via-knight-infected to-yellow-100 shadow-[0_0_15px_#FFB84D] transition-all duration-1000 ease-out relative"
                      style={{ width: `${stats.soulVessel}%` }}
                    >
-                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-50 mix-blend-overlay"></div>
+                     {/* Replaced external texture with internal noise class */}
+                     <div className="absolute inset-0 bg-noise opacity-50 mix-blend-overlay"></div>
                    </div>
               </div>
               

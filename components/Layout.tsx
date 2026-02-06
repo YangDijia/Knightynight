@@ -101,7 +101,8 @@ const Layout: React.FC<LayoutProps> = ({ currentPage, setCurrentPage, currentUse
         <div className="absolute top-[10%] left-[20%] w-[40vw] h-[40vw] bg-knight-glow/10 rounded-full blur-[100px] animate-breathe"></div>
         <div className="absolute bottom-[0%] right-[10%] w-[50vw] h-[50vw] bg-knight-infected/10 rounded-full blur-[120px] animate-breathe delay-1000"></div>
       </div>
-      <div className="fixed inset-0 z-0 pointer-events-none opacity-20 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] animate-pulse-slow"></div>
+      {/* Replaced external texture with Tailwind internal noise pattern */}
+      <div className="fixed inset-0 z-0 pointer-events-none opacity-30 bg-noise animate-pulse-slow"></div>
       <div className="fixed inset-0 z-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_20%,rgba(5,11,20,0.95)_100%)]"></div>
 
       {/* Ornaments - Hide on mobile to save space, show on desktop */}

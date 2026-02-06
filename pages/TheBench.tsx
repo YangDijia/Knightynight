@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Wind, Flame, Dog, Sliders } from 'lucide-react';
+import { X, Wind, Flame, Bug, Sliders } from 'lucide-react';
 import { UserProfile } from '../types';
 
 interface AudioState {
   fire: number;
   wind: number;
-  dog: number;
+  bug: number;
 }
 
 interface TheBenchProps {
@@ -22,29 +22,28 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
   const [volumes, setVolumes] = useState<AudioState>({
     fire: 0,
     wind: 0,
-    dog: 0,
+    bug: 0,
   });
 
-  // Audio References
-  const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
+  // Store HTMLAudioElement references
+  const audioRefs = useRef<Record<string, HTMLAudioElement>>({});
 
-  // Initialize Audio
+  // Initialize Audio Objects
   useEffect(() => {
-    const audioFiles = {
-      fire: '/audio/fire.mp3',
-      wind: '/audio/wind.mp3',
-      dog: '/audio/dog.mp3',
+    // These files should be placed in the /public/audio/ folder
+    audioRefs.current = {
+      fire: new Audio('/audio/fire.mp3'),
+      wind: new Audio('/audio/wind.mp3'),
+      bug: new Audio('/audio/greenpath.mp3'),
     };
 
-    Object.entries(audioFiles).forEach(([key, src]) => {
-      if (!audioRefs.current[key]) {
-        const audio = new Audio(src);
-        audio.loop = true;
-        audio.volume = 0;
-        audioRefs.current[key] = audio;
-      }
+    // Configure loop and preload
+    Object.values(audioRefs.current).forEach(audio => {
+      audio.loop = true;
+      audio.preload = 'auto';
     });
 
+    // Cleanup on unmount
     return () => {
       Object.values(audioRefs.current).forEach(audio => {
         audio.pause();
@@ -53,15 +52,20 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
     };
   }, []);
 
-  // Sync volumes
+  // Sync volumes to Audio Elements
   useEffect(() => {
-    Object.entries(volumes).forEach(([key, vol]) => {
+    Object.keys(volumes).forEach((key) => {
       const audio = audioRefs.current[key];
+      const volume = volumes[key as keyof AudioState] / 100;
+      
       if (audio) {
-        audio.volume = vol / 100;
-        if (vol > 0 && audio.paused) {
-          audio.play().catch(e => console.log("Audio play failed (interaction required):", e));
-        } else if (vol === 0 && !audio.paused) {
+        audio.volume = volume;
+        
+        // Auto play/pause logic based on volume
+        if (volume > 0 && audio.paused) {
+          // User interaction is required for audio to play in browsers
+          audio.play().catch(e => console.log("Audio play failed (interaction needed):", e));
+        } else if (volume === 0 && !audio.paused) {
           audio.pause();
         }
       }
@@ -203,8 +207,8 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
         <div className="space-y-6 pb-6 md:pb-0">
           {[
             { id: 'fire', icon: Flame, label: 'Bonfire' },
-            { id: 'wind', icon: Wind, label: 'Howling Cliffs' },
-            { id: 'dog', icon: Dog, label: 'Stray Shade' }
+            { id: 'wind', icon: Wind, label: 'Wind' },
+            { id: 'bug', icon: Bug, label: 'Chirp' }
           ].map((track) => (
             <div key={track.id} className="space-y-2 group">
               <div className="flex items-center gap-3 text-knight-accent/60 group-hover:text-knight-glow transition-colors">
