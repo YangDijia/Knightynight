@@ -1,40 +1,12 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Note, UserProfile, Comment } from '../types';
 import { Heart, Pin, Image as ImageIcon, X, MessageCircle, Trash2, Send } from 'lucide-react';
+import Bmob from '../bmob';
 
 interface MessageBoardProps {
   currentUser: UserProfile;
 }
-
-const INITIAL_NOTES: Note[] = [
-  {
-    id: '1',
-    text: "Don't forget to rest, little ghost. The journey is long but the bench is always here.",
-    liked: false,
-    timestamp: '10/14/2025, 10:30:00 AM',
-    author: 'Hornet',
-    comments: []
-  },
-  {
-    id: '2',
-    text: "I found this view near the City of Tears. It reminds me of home.",
-    // Removed external image URL to prevent loading issues in restricted networks
-    liked: true,
-    timestamp: '10/12/2025, 08:45:15 PM',
-    author: 'Knight',
-    comments: [
-        { id: 'c1', text: "A truly melancholic sight.", author: 'Hornet', timestamp: '10/12/2025, 09:00:00 PM' }
-    ]
-  },
-  {
-    id: '3',
-    text: "Bapanada.",
-    liked: false,
-    timestamp: '10/15/2025, 02:15:00 PM',
-    author: 'Knight',
-    comments: []
-  }
-];
 
 const Avatar: React.FC<{ user: UserProfile, className?: string }> = ({ user, className }) => (
     <div className={`rounded-full overflow-hidden bg-knight-secondary border border-white/20 flex items-center justify-center ${className}`}>
@@ -47,20 +19,38 @@ const Avatar: React.FC<{ user: UserProfile, className?: string }> = ({ user, cla
 );
 
 const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
-  // Initialize from localStorage
-  const [notes, setNotes] = useState<Note[]>(() => {
-    try {
-      const saved = localStorage.getItem('knight_notes');
-      return saved ? JSON.parse(saved) : INITIAL_NOTES;
-    } catch (e) {
-      return INITIAL_NOTES;
-    }
-  });
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Save to localStorage
+  const fetchNotes = async () => {
+    try {
+      const query = Bmob.Query('Note');
+      query.order('-createdAt'); // Descending order
+      query.limit(50);
+      
+      const res = await query.find();
+      if (Array.isArray(res)) {
+        const fetchedNotes = res.map((obj: any) => ({
+            id: obj.objectId,
+            text: obj.text,
+            imageUrl: obj.imageUrl,
+            liked: obj.liked || false,
+            timestamp: obj.timestampStr,
+            author: obj.author,
+            comments: obj.comments || []
+        })) as Note[];
+        setNotes(fetchedNotes);
+      }
+      setLoading(false);
+    } catch (error) {
+      console.error("Bmob fetch error:", error);
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    localStorage.setItem('knight_notes', JSON.stringify(notes));
-  }, [notes]);
+    fetchNotes();
+  }, []);
 
   const [inputText, setInputText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -83,38 +73,63 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
     }
   };
 
-  const handlePost = () => {
+  const handlePost = async () => {
     if (!inputText.trim() && !selectedImage) return;
 
-    const newNote: Note = {
-      id: Date.now().toString(),
-      text: inputText,
-      imageUrl: selectedImage || undefined,
-      liked: false,
-      timestamp: new Date().toLocaleString(),
-      author: currentUser,
-      comments: []
-    };
-
-    setNotes([newNote, ...notes]);
-    setInputText('');
-    setSelectedImage(null);
+    try {
+      const query = Bmob.Query('Note');
+      query.set('text', inputText);
+      query.set('imageUrl', selectedImage || null);
+      query.set('liked', false);
+      query.set('timestampStr', new Date().toLocaleString());
+      query.set('author', currentUser);
+      query.set('comments', []);
+      
+      await query.save();
+      
+      setInputText('');
+      setSelectedImage(null);
+      // Refresh list
+      fetchNotes();
+    } catch (e) {
+      console.error("Error adding note: ", e);
+    }
   };
 
-  const handleDelete = (e: React.MouseEvent, id: string) => {
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    setNotes(notes.filter(n => n.id !== id));
-    if (activeNoteId === id) setActiveNoteId(null);
+    try {
+      const query = Bmob.Query('Note');
+      query.destroy(id);
+      
+      setNotes(prev => prev.filter(n => n.id !== id));
+      if (activeNoteId === id) setActiveNoteId(null);
+    } catch (error) {
+       console.error("Error removing note: ", error);
+    }
   };
 
-  const toggleLike = (e: React.MouseEvent, id: string) => {
+  const toggleLike = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    setNotes(notes.map(note => 
-      note.id === id ? { ...note, liked: !note.liked } : note
-    ));
+    const noteData = notes.find(n => n.id === id);
+    if (noteData) {
+        const newStatus = !noteData.liked;
+        // Optimistic UI
+        setNotes(prev => prev.map(n => n.id === id ? {...n, liked: newStatus} : n));
+
+        try {
+            const query = Bmob.Query('Note');
+            query.get(id).then((res: any) => {
+                res.set('liked', newStatus);
+                res.save();
+            });
+        } catch (error) {
+            console.error("Error updating like: ", error);
+        }
+    }
   };
 
-  const handleAddComment = () => {
+  const handleAddComment = async () => {
     if (!commentInput.trim() || !activeNoteId) return;
 
     const newComment: Comment = {
@@ -124,13 +139,29 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
         timestamp: new Date().toLocaleString()
     };
 
-    setNotes(notes.map(n => 
-        n.id === activeNoteId ? { ...n, comments: [...n.comments, newComment] } : n
-    ));
-    setCommentInput('');
+    // Optimistic UI update
+    setNotes(prev => prev.map(n => {
+        if (n.id === activeNoteId) {
+            return { ...n, comments: [...(n.comments || []), newComment] };
+        }
+        return n;
+    }));
+
+    try {
+        const query = Bmob.Query('Note');
+        const res = await query.get(activeNoteId);
+        const currentComments = res.comments || [];
+        res.set('comments', [...currentComments, newComment]);
+        await res.save();
+        
+        setCommentInput('');
+    } catch (error) {
+        console.error("Error adding comment: ", error);
+    }
   };
 
   const getNoteShape = (id: string) => {
+    const sum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const shapes = [
       'polygon(1% 0%, 99% 1%, 100% 99%, 0% 100%)',
       'polygon(0% 0%, 90% 0%, 100% 10%, 100% 100%, 0% 100%)',
@@ -138,17 +169,18 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
       'polygon(5% 0%, 100% 2%, 95% 100%, 0% 98%)',
       'polygon(0% 0%, 100% 0%, 100% 0%, 100% 100%, 2% 95%)',
     ];
-    return shapes[parseInt(id) % shapes.length];
+    return shapes[sum % shapes.length];
   };
 
   const getNoteColor = (id: string) => {
+    const sum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const colors = [
       'rgba(227, 218, 201, 0.9)', 
       'rgba(212, 197, 169, 0.9)', 
       'rgba(235, 229, 206, 0.9)',
       'rgba(218, 208, 190, 0.9)',
     ];
-    return colors[parseInt(id) % colors.length];
+    return colors[sum % colors.length];
   };
 
   return (
@@ -199,6 +231,12 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
            </div>
         </div>
       </div>
+
+      {loading && notes.length === 0 && (
+          <div className="w-full text-center py-20 text-knight-accent/30 font-title animate-pulse">
+              Listening to the void...
+          </div>
+      )}
 
       {/* Masonry Grid */}
       <div className="columns-1 md:columns-2 lg:columns-3 gap-8 space-y-8 md:space-y-12 pb-12">
@@ -251,7 +289,7 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
                     </button>
                     <div className="flex items-center gap-1 text-[#2D3A4A]/40">
                          <MessageCircle className="w-4 h-4" />
-                         <span className="text-xs font-bold">{note.comments.length}</span>
+                         <span className="text-xs font-bold">{note.comments?.length || 0}</span>
                     </div>
                     <button onClick={(e) => toggleLike(e, note.id)} className={`transition-all duration-300 transform active:scale-95 ${note.liked ? 'text-red-800 scale-110 drop-shadow-md' : 'text-[#2D3A4A]/20 hover:text-red-800/60'}`}>
                         <Heart className={`w-5 h-5 ${note.liked ? 'fill-current' : ''}`} />
@@ -303,10 +341,10 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
                     </div>
                     
                     <div className="flex-grow overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar pb-24 md:pb-6">
-                        {activeNote.comments.length === 0 && (
+                        {(!activeNote.comments || activeNote.comments.length === 0) && (
                             <p className="text-center text-knight-accent/20 italic mt-8 md:mt-12">No echoes yet...</p>
                         )}
-                        {activeNote.comments.map(comment => (
+                        {activeNote.comments?.map(comment => (
                             <div key={comment.id} className="flex gap-4 group">
                                 <Avatar user={comment.author} className="w-8 h-8 shrink-0 mt-1 opacity-70 group-hover:opacity-100 transition-opacity" />
                                 <div className="flex flex-col">

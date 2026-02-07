@@ -1,6 +1,8 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { MoodType, MOODS, DailyData, UserProfile } from '../types';
-import { X, Bookmark, PenLine } from 'lucide-react';
+import { X, Bookmark } from 'lucide-react';
+import Bmob from '../bmob';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -12,20 +14,42 @@ interface MoodCalendarProps {
 }
 
 const MoodCalendar: React.FC<MoodCalendarProps> = ({ currentUser }) => {
-  // Initialize state from localStorage if available
-  const [userData, setUserData] = useState<Record<UserProfile, Record<string, DailyData>>>(() => {
-    try {
-      const savedData = localStorage.getItem('knight_calendar_data');
-      return savedData ? JSON.parse(savedData) : { 'Knight': {}, 'Hornet': {} };
-    } catch (e) {
-      return { 'Knight': {}, 'Hornet': {} };
-    }
-  });
+  const [currentData, setCurrentData] = useState<Record<string, DailyData>>({});
+  const year = 2026;
+  
+  // Using a custom unique key for the object query: currentUser + year
+  const calendarKey = `${currentUser}_${year}`;
 
-  // Save to localStorage whenever userData changes
+  // Bmob Sync
   useEffect(() => {
-    localStorage.setItem('knight_calendar_data', JSON.stringify(userData));
-  }, [userData]);
+    const fetchCalendar = async () => {
+      try {
+        const query = Bmob.Query('MoodCalendar');
+        query.equalTo('calendarKey', '==', calendarKey);
+        
+        const res = await query.find();
+        let calObj;
+
+        if (Array.isArray(res) && res.length > 0) {
+          calObj = res[0];
+          // Bmob stores JSON objects directly usually, assuming 'data' field is Object type
+          setCurrentData(calObj.data || {});
+        } else {
+          // Init empty if not found
+          const queryCreate = Bmob.Query('MoodCalendar');
+          queryCreate.set('calendarKey', calendarKey);
+          queryCreate.set('data', {});
+          const newObj = await queryCreate.save();
+          setCurrentData({});
+        }
+
+      } catch (error) {
+        console.error("Bmob Calendar fetch error:", error);
+      }
+    };
+
+    fetchCalendar();
+  }, [currentUser, calendarKey]);
   
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showJournalModal, setShowJournalModal] = useState(false);
@@ -37,9 +61,6 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ currentUser }) => {
   const animationFrameRef = useRef<number | null>(null);
   
   const PRESS_DURATION = 1000;
-
-  const currentData = userData[currentUser];
-  const year = 2026;
 
   const calculateStats = () => {
     const entries = Object.values(currentData) as DailyData[];
@@ -113,15 +134,36 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ currentUser }) => {
     }
   };
 
+  const updateBmob = async (newDataMap: Record<string, DailyData>) => {
+    try {
+        const query = Bmob.Query('MoodCalendar');
+        query.equalTo('calendarKey', '==', calendarKey);
+        const res = await query.find();
+        
+        if (Array.isArray(res) && res.length > 0) {
+            const id = res[0].objectId;
+            const queryUpdate = Bmob.Query('MoodCalendar');
+            queryUpdate.set('id', id);
+            queryUpdate.set('data', newDataMap);
+            await queryUpdate.save();
+        }
+    } catch (e) {
+        console.error("Error updating calendar:", e);
+    }
+  };
+
   const handleSelectMood = (mood: MoodType) => {
     if (selectedDate) {
-      setUserData(prev => ({
-        ...prev,
-        [currentUser]: {
-          ...prev[currentUser],
-          [selectedDate]: { ...prev[currentUser][selectedDate], mood }
-        }
-      }));
+      const prevEntry = currentData[selectedDate] || {};
+      const newEntry = { ...prevEntry, mood };
+      
+      const newDataMap = { ...currentData, [selectedDate]: newEntry };
+
+      // Optimistic update
+      setCurrentData(newDataMap);
+      
+      updateBmob(newDataMap);
+
       // Only close if we are in the simple selection mode
       if (!showJournalModal) setSelectedDate(null);
     }
@@ -129,13 +171,16 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ currentUser }) => {
 
   const handleSaveJournal = () => {
     if (selectedDate) {
-       setUserData(prev => ({
-        ...prev,
-        [currentUser]: {
-          ...prev[currentUser],
-          [selectedDate]: { ...prev[currentUser][selectedDate], journal: journalText }
-        }
-      }));
+      const prevEntry = currentData[selectedDate] || {};
+      const newEntry = { ...prevEntry, journal: journalText };
+      
+      const newDataMap = { ...currentData, [selectedDate]: newEntry };
+
+      // Optimistic update
+      setCurrentData(newDataMap);
+      
+      updateBmob(newDataMap);
+      
       closeAllModals();
     }
   };
@@ -342,7 +387,7 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ currentUser }) => {
                            <button 
                              key={key} 
                              onClick={() => handleSelectMood(key as MoodType)}
-                             className={`p-2 rounded-full transition-all ${userData[currentUser][selectedDate]?.mood === key ? 'bg-knight-glow/20 scale-110 shadow-glow' : 'hover:bg-white/5 opacity-50 hover:opacity-100'}`}
+                             className={`p-2 rounded-full transition-all ${currentData[selectedDate]?.mood === key ? 'bg-knight-glow/20 scale-110 shadow-glow' : 'hover:bg-white/5 opacity-50 hover:opacity-100'}`}
                            >
                                <span className="text-xl">{emoji}</span>
                            </button>

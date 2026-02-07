@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Wind, Flame, Bug, Sliders } from 'lucide-react';
 import { UserProfile } from '../types';
+import Bmob from '../bmob';
 
 interface AudioState {
   fire: number;
@@ -24,6 +26,94 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
     wind: 0,
     bug: 0,
   });
+
+  // Bmob Synchronization
+  // Note: On the free tier, WebSocket connections can sometimes be unstable or limited.
+  // For "The Bench", a simple polling mechanism (checking every 2 seconds) is extremely robust
+  // and guarantees multi-device sync without complex socket handling.
+  useEffect(() => {
+    let objectId = '';
+
+    const fetchStatus = async () => {
+      try {
+        const query = Bmob.Query('BenchStatus');
+        query.equalTo('type', '==', 'global_bench');
+        const res = await query.find();
+
+        if (Array.isArray(res) && res.length > 0) {
+          const status = res[0];
+          objectId = status.objectId;
+          setRestingState({
+            'Knight': status.Knight || false,
+            'Hornet': status.Hornet || false,
+          });
+        } else {
+          // Initialize if doesn't exist
+          const queryCreate = Bmob.Query('BenchStatus');
+          queryCreate.set('type', 'global_bench');
+          queryCreate.set('Knight', false);
+          queryCreate.set('Hornet', false);
+          const newObj = await queryCreate.save();
+          objectId = newObj.objectId;
+        }
+      } catch (e) {
+        console.error("Bmob Fetch Error:", e);
+      }
+    };
+
+    fetchStatus();
+
+    // Poll for updates every 2.5 seconds
+    const interval = setInterval(async () => {
+        try {
+            const query = Bmob.Query('BenchStatus');
+            query.equalTo('type', '==', 'global_bench');
+            const res = await query.find();
+            if (Array.isArray(res) && res.length > 0) {
+                const status = res[0];
+                setRestingState({
+                    'Knight': status.Knight || false,
+                    'Hornet': status.Hornet || false,
+                });
+            }
+        } catch (e) {
+            // silent fail on poll error
+        }
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const toggleRest = async () => {
+    const newState = !restingState[currentUser];
+    // Optimistic update
+    setRestingState(prev => ({
+      ...prev,
+      [currentUser]: newState
+    }));
+
+    try {
+      // Find object ID first (or store it in ref, but querying is safer for consistency)
+      const query = Bmob.Query('BenchStatus');
+      query.equalTo('type', '==', 'global_bench');
+      const res = await query.find();
+      
+      if (Array.isArray(res) && res.length > 0) {
+        const id = res[0].objectId;
+        const queryUpdate = Bmob.Query('BenchStatus');
+        queryUpdate.set('id', id); // Important: set id to update specific object
+        queryUpdate.set(currentUser, newState);
+        await queryUpdate.save();
+      }
+    } catch (error) {
+      console.error("Error updating bench status:", error);
+      // Revert on error
+      setRestingState(prev => ({
+        ...prev,
+        [currentUser]: !newState
+      }));
+    }
+  };
 
   // Store HTMLAudioElement references
   const audioRefs = useRef<Record<string, HTMLAudioElement>>({});
@@ -63,7 +153,6 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
         
         // Auto play/pause logic based on volume
         if (volume > 0 && audio.paused) {
-          // User interaction is required for audio to play in browsers
           audio.play().catch(e => console.log("Audio play failed (interaction needed):", e));
         } else if (volume === 0 && !audio.paused) {
           audio.pause();
@@ -85,13 +174,6 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
 
   const handleVolumeChange = (type: keyof AudioState, val: string) => {
     setVolumes(prev => ({ ...prev, [type]: parseInt(val) }));
-  };
-
-  const toggleRest = () => {
-    setRestingState(prev => ({
-      ...prev,
-      [currentUser]: !prev[currentUser]
-    }));
   };
 
   // Gothic Bench Illustration
