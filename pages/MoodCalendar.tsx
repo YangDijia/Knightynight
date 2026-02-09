@@ -2,7 +2,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MoodType, MOODS, DailyData, UserProfile } from '../types';
 import { X, Bookmark } from 'lucide-react';
-import Bmob from '../bmob';
+import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -16,40 +17,23 @@ interface MoodCalendarProps {
 const MoodCalendar: React.FC<MoodCalendarProps> = ({ currentUser }) => {
   const [currentData, setCurrentData] = useState<Record<string, DailyData>>({});
   const year = 2026;
-  
-  // Using a custom unique key for the object query: currentUser + year
-  const calendarKey = `${currentUser}_${year}`;
+  const docId = `${currentUser}_${year}`;
 
-  // Bmob Sync
+  // Firestore Sync
   useEffect(() => {
-    const fetchCalendar = async () => {
-      try {
-        const query = Bmob.Query('MoodCalendar');
-        query.equalTo('calendarKey', '==', calendarKey);
-        
-        const res = await query.find();
-        let calObj;
-
-        if (Array.isArray(res) && res.length > 0) {
-          calObj = res[0];
-          // Bmob stores JSON objects directly usually, assuming 'data' field is Object type
-          setCurrentData(calObj.data || {});
-        } else {
-          // Init empty if not found
-          const queryCreate = Bmob.Query('MoodCalendar');
-          queryCreate.set('calendarKey', calendarKey);
-          queryCreate.set('data', {});
-          const newObj = await queryCreate.save();
-          setCurrentData({});
-        }
-
-      } catch (error) {
-        console.error("Bmob Calendar fetch error:", error);
+    const docRef = doc(db, 'calendar', docId);
+    
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setCurrentData(docSnap.data() as Record<string, DailyData>);
+      } else {
+        // Doc doesn't exist yet, that's fine, we'll create it on first write
+        setCurrentData({});
       }
-    };
+    });
 
-    fetchCalendar();
-  }, [currentUser, calendarKey]);
+    return () => unsubscribe();
+  }, [currentUser, docId]);
   
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showJournalModal, setShowJournalModal] = useState(false);
@@ -134,19 +118,17 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ currentUser }) => {
     }
   };
 
-  const updateBmob = async (newDataMap: Record<string, DailyData>) => {
+  const updateFirestore = async (dateStr: string, newData: DailyData) => {
+    const docRef = doc(db, 'calendar', docId);
+    
+    // We need to construct the update object dynamically for nested fields
+    // Firestore allows "dot notation" for updating map fields: "2025-01-01.mood"
     try {
-        const query = Bmob.Query('MoodCalendar');
-        query.equalTo('calendarKey', '==', calendarKey);
-        const res = await query.find();
-        
-        if (Array.isArray(res) && res.length > 0) {
-            const id = res[0].objectId;
-            const queryUpdate = Bmob.Query('MoodCalendar');
-            queryUpdate.set('id', id);
-            queryUpdate.set('data', newDataMap);
-            await queryUpdate.save();
-        }
+        // Check if doc exists first to decide between setDoc (merge) or updateDoc
+        // But setDoc with merge is usually safer for "create if not exists"
+        await setDoc(docRef, {
+            [dateStr]: newData
+        }, { merge: true });
     } catch (e) {
         console.error("Error updating calendar:", e);
     }
@@ -154,15 +136,13 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ currentUser }) => {
 
   const handleSelectMood = (mood: MoodType) => {
     if (selectedDate) {
-      const prevEntry = currentData[selectedDate] || {};
-      const newEntry = { ...prevEntry, mood };
+      const prevData = currentData[selectedDate] || {};
+      const newData = { ...prevData, mood };
       
-      const newDataMap = { ...currentData, [selectedDate]: newEntry };
-
       // Optimistic update
-      setCurrentData(newDataMap);
+      setCurrentData(prev => ({ ...prev, [selectedDate]: newData }));
       
-      updateBmob(newDataMap);
+      updateFirestore(selectedDate, newData);
 
       // Only close if we are in the simple selection mode
       if (!showJournalModal) setSelectedDate(null);
@@ -171,15 +151,13 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ currentUser }) => {
 
   const handleSaveJournal = () => {
     if (selectedDate) {
-      const prevEntry = currentData[selectedDate] || {};
-      const newEntry = { ...prevEntry, journal: journalText };
+      const prevData = currentData[selectedDate] || {};
+      const newData = { ...prevData, journal: journalText };
       
-      const newDataMap = { ...currentData, [selectedDate]: newEntry };
-
       // Optimistic update
-      setCurrentData(newDataMap);
+      setCurrentData(prev => ({ ...prev, [selectedDate]: newData }));
       
-      updateBmob(newDataMap);
+      updateFirestore(selectedDate, newData);
       
       closeAllModals();
     }

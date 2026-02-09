@@ -2,7 +2,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Note, UserProfile, Comment } from '../types';
 import { Heart, Pin, Image as ImageIcon, X, MessageCircle, Trash2, Send } from 'lucide-react';
-import Bmob from '../bmob';
+import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { db } from '../firebase';
 
 interface MessageBoardProps {
   currentUser: UserProfile;
@@ -22,34 +23,18 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchNotes = async () => {
-    try {
-      const query = Bmob.Query('Note');
-      query.order('-createdAt'); // Descending order
-      query.limit(50);
-      
-      const res = await query.find();
-      if (Array.isArray(res)) {
-        const fetchedNotes = res.map((obj: any) => ({
-            id: obj.objectId,
-            text: obj.text,
-            imageUrl: obj.imageUrl,
-            liked: obj.liked || false,
-            timestamp: obj.timestampStr,
-            author: obj.author,
-            comments: obj.comments || []
-        })) as Note[];
-        setNotes(fetchedNotes);
-      }
-      setLoading(false);
-    } catch (error) {
-      console.error("Bmob fetch error:", error);
-      setLoading(false);
-    }
-  };
-
+  // Firestore Sync
   useEffect(() => {
-    fetchNotes();
+    const q = query(collection(db, 'notes'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedNotes = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Note[];
+      setNotes(fetchedNotes);
+      setLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
   const [inputText, setInputText] = useState('');
@@ -77,32 +62,26 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
     if (!inputText.trim() && !selectedImage) return;
 
     try {
-      const query = Bmob.Query('Note');
-      query.set('text', inputText);
-      query.set('imageUrl', selectedImage || null);
-      query.set('liked', false);
-      query.set('timestampStr', new Date().toLocaleString());
-      query.set('author', currentUser);
-      query.set('comments', []);
-      
-      await query.save();
-      
+      await addDoc(collection(db, 'notes'), {
+        text: inputText,
+        imageUrl: selectedImage || null,
+        liked: false,
+        timestamp: new Date().toLocaleString(),
+        createdAt: Date.now(), // for sorting
+        author: currentUser,
+        comments: []
+      });
       setInputText('');
       setSelectedImage(null);
-      // Refresh list
-      fetchNotes();
     } catch (e) {
-      console.error("Error adding note: ", e);
+      console.error("Error adding document: ", e);
     }
   };
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     try {
-      const query = Bmob.Query('Note');
-      query.destroy(id);
-      
-      setNotes(prev => prev.filter(n => n.id !== id));
+      await deleteDoc(doc(db, 'notes', id));
       if (activeNoteId === id) setActiveNoteId(null);
     } catch (error) {
        console.error("Error removing note: ", error);
@@ -111,21 +90,15 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
 
   const toggleLike = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    const noteData = notes.find(n => n.id === id);
-    if (noteData) {
-        const newStatus = !noteData.liked;
-        // Optimistic UI
-        setNotes(prev => prev.map(n => n.id === id ? {...n, liked: newStatus} : n));
-
-        try {
-            const query = Bmob.Query('Note');
-            query.get(id).then((res: any) => {
-                res.set('liked', newStatus);
-                res.save();
-            });
-        } catch (error) {
-            console.error("Error updating like: ", error);
-        }
+    const note = notes.find(n => n.id === id);
+    if (note) {
+      try {
+        await updateDoc(doc(db, 'notes', id), {
+            liked: !note.liked
+        });
+      } catch (error) {
+        console.error("Error updating like: ", error);
+      }
     }
   };
 
@@ -139,21 +112,10 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
         timestamp: new Date().toLocaleString()
     };
 
-    // Optimistic UI update
-    setNotes(prev => prev.map(n => {
-        if (n.id === activeNoteId) {
-            return { ...n, comments: [...(n.comments || []), newComment] };
-        }
-        return n;
-    }));
-
     try {
-        const query = Bmob.Query('Note');
-        const res = await query.get(activeNoteId);
-        const currentComments = res.comments || [];
-        res.set('comments', [...currentComments, newComment]);
-        await res.save();
-        
+        await updateDoc(doc(db, 'notes', activeNoteId), {
+            comments: arrayUnion(newComment)
+        });
         setCommentInput('');
     } catch (error) {
         console.error("Error adding comment: ", error);
@@ -161,6 +123,7 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
   };
 
   const getNoteShape = (id: string) => {
+    // Generate a pseudo-random index based on the ID string's characters
     const sum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const shapes = [
       'polygon(1% 0%, 99% 1%, 100% 99%, 0% 100%)',
