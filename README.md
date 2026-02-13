@@ -29,3 +29,13 @@ This project now uses Supabase instead of Firestore for:
 - Mood calendar entries (`calendar_entries`)
 
 If you are migrating existing Firestore data, export your Firestore collections and import them into the matching Supabase tables.
+
+## Bench ambient audio files
+
+To make the Bench ambience sliders work, add these files under `public/audio/`:
+
+- `public/audio/fire.mp3`
+- `public/audio/wind.mp3`
+- `public/audio/greenpath.mp3`
+
+These names are hard-coded in `pages/TheBench.tsx`.

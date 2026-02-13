@@ -14,6 +14,13 @@ interface TheBenchProps {
   currentUser: UserProfile;
 }
 
+
+const BENCH_AUDIO_FILES = {
+  fire: '/audio/fire.mp3',
+  wind: '/audio/wind.mp3',
+  bug: '/audio/greenpath.mp3',
+} as const;
+
 const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
   const [restingState, setRestingState] = useState<Record<UserProfile, boolean>>({
     'Knight': false,
@@ -72,11 +79,11 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
 
   // Initialize Audio Objects
   useEffect(() => {
-    // These files should be placed in the /public/audio/ folder
+    // Put these files in /public/audio/: fire.mp3, wind.mp3, greenpath.mp3
     audioRefs.current = {
-      fire: new Audio('/audio/fire.mp3'),
-      wind: new Audio('/audio/wind.mp3'),
-      bug: new Audio('/audio/greenpath.mp3'),
+      fire: new Audio(BENCH_AUDIO_FILES.fire),
+      wind: new Audio(BENCH_AUDIO_FILES.wind),
+      bug: new Audio(BENCH_AUDIO_FILES.bug),
     };
 
     // Configure loop and preload
