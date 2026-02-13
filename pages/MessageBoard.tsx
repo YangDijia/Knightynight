@@ -92,6 +92,7 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
         text: textToPost,
         imageUrl: imageToPost,
         author: currentUser,
+        timestamp,
       });
 
       setInputText('');
