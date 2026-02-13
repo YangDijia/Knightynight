@@ -21,23 +21,28 @@ const Avatar: React.FC<{ user: UserProfile, className?: string }> = ({ user, cla
 const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
+  const isSyncingRef = useRef(false);
+
+  const fetchNotes = async (isInitialLoad = false) => {
+    if (isSyncingRef.current) return;
+    isSyncingRef.current = true;
+
+    try {
+      const fetchedNotes = await supabaseApi.getNotes();
+      setNotes(fetchedNotes);
+    } catch (error) {
+      console.error('Error fetching notes:', error);
+    } finally {
+      if (isInitialLoad) setLoading(false);
+      isSyncingRef.current = false;
+    }
+  };
 
   // Supabase Sync
   useEffect(() => {
-    const fetchNotes = async () => {
-      try {
-        const fetchedNotes = await supabaseApi.getNotes();
-        setNotes(fetchedNotes);
-      } catch (error) {
-        console.error('Error fetching notes:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    fetchNotes(true);
 
-    fetchNotes();
-
-    const timer = window.setInterval(fetchNotes, 5000);
+    const timer = window.setInterval(() => fetchNotes(false), 10000);
 
     return () => {
       window.clearInterval(timer);
@@ -84,8 +89,8 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
 
     try {
       await supabaseApi.createNote({
-        text: inputText,
-        imageUrl: selectedImage,
+        text: textToPost,
+        imageUrl: imageToPost,
         author: currentUser,
       });
 
@@ -95,6 +100,8 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
         fileInputRef.current.value = '';
       }
     } catch (e) {
+      setInputText(textToPost);
+      setSelectedImage(imageToPost || null);
       console.error("Error adding document: ", e);
     } finally {
       setIsPosting(false);
@@ -103,10 +110,13 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
+    const previousNotes = notes;
+    setNotes(prev => prev.filter(note => note.id !== id));
     try {
       await supabaseApi.deleteNote(id);
       if (activeNoteId === id) setActiveNoteId(null);
     } catch (error) {
+       setNotes(previousNotes);
        console.error("Error removing note: ", error);
     }
   };
@@ -115,9 +125,11 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
     e.stopPropagation();
     const note = notes.find(n => n.id === id);
     if (note) {
+      setNotes(prev => prev.map(item => item.id === id ? { ...item, liked: !item.liked } : item));
       try {
         await supabaseApi.updateNote(id, { liked: !note.liked });
       } catch (error) {
+        setNotes(prev => prev.map(item => item.id === id ? { ...item, liked: note.liked } : item));
         console.error("Error updating like: ", error);
       }
     }
@@ -137,12 +149,23 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
         const targetNote = notes.find((note) => note.id === activeNoteId);
         if (!targetNote) return;
 
+        setNotes(prev => prev.map((note) => {
+          if (note.id !== activeNoteId) return note;
+          return { ...note, comments: [...note.comments, newComment] };
+        }));
+
         await supabaseApi.updateNote(activeNoteId, { comments: [...targetNote.comments, newComment] });
 
         setCommentInput('');
     } catch (error) {
+        fetchNotes(false);
         console.error("Error adding comment: ", error);
     }
+  };
+
+  const getNoteRotation = (id: string) => {
+    const sum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return ((sum % 5) - 2) * 0.4;
   };
 
   const getNoteShape = (id: string) => {
@@ -233,7 +256,7 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
           <div 
             key={note.id}
             className="break-inside-avoid relative transition-all duration-500 hover:scale-[1.02] cursor-pointer group"
-            style={{ transform: `rotate(${Math.random() * 2 - 1}deg)` }}
+            style={{ transform: `rotate(${getNoteRotation(note.id)}deg)` }}
             onClick={() => setActiveNoteId(note.id)}
           >
             <div className="relative p-6 overflow-hidden border border-white/10 backdrop-blur-md shadow-glass"
@@ -257,7 +280,7 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
 
               {note.imageUrl && (
                 <div className="mb-5 overflow-hidden rounded-sm border border-black/10 shadow-sm relative z-10 mt-6">
-                  <img src={note.imageUrl} alt="Attachment" className="w-full h-auto object-cover grayscale transition-all duration-700 ease-out group-hover:grayscale-0" />
+                  <img src={note.imageUrl} alt="Attachment" loading="lazy" decoding="async" className="w-full h-auto object-cover grayscale transition-all duration-700 ease-out group-hover:grayscale-0" />
                 </div>
               )}
 
