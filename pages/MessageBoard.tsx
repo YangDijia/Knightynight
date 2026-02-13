@@ -54,6 +54,17 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
 
   const activeNote = notes.find(n => n.id === activeNoteId);
 
+  useEffect(() => {
+    if (!activeNoteId) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [activeNoteId]);
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -218,8 +229,7 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
                  style={{ 
                    backgroundColor: getNoteColor(note.id),
                    // Replaced external texture URL with CSS linear-gradient
-                   backgroundImage: 'linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.05) 75%, transparent 75%, transparent)',
-                   backgroundSize: '20px 20px',
+                   backgroundImage: 'none',
                    clipPath: getNoteShape(note.id),
                    borderRadius: '2px'
                  }}
@@ -270,7 +280,7 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
 
       {/* Detail Modal - Full Screen on Mobile, Centered Box on Desktop */}
       {activeNote && (
-        <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center bg-black/80 backdrop-blur-lg animate-fade-in md:p-4" onClick={() => setActiveNoteId(null)}>
+        <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center bg-black/80 backdrop-blur-lg animate-fade-in md:p-4 overscroll-contain" onClick={() => setActiveNoteId(null)}>
             <div className="bg-[#0F1E26] border-t md:border border-knight-accent/20 w-full md:max-w-4xl h-[90vh] md:h-[80vh] rounded-t-2xl md:rounded-xl overflow-hidden flex flex-col md:flex-row shadow-2xl relative" onClick={e => e.stopPropagation()}>
                 <button onClick={() => setActiveNoteId(null)} className="absolute top-4 right-4 text-white/50 hover:text-white z-50 bg-black/50 rounded-full p-2"><X className="w-5 h-5"/></button>
                 
@@ -281,8 +291,7 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
                         style={{ 
                             backgroundColor: getNoteColor(activeNote.id),
                             // Replaced external texture URL with CSS linear-gradient
-                            backgroundImage: 'linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.05) 75%, transparent 75%, transparent)',
-                            backgroundSize: '20px 20px',
+                            backgroundImage: 'none',
                             clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)', // Simpler shape for modal
                             borderRadius: '4px'
                         }}
@@ -300,7 +309,7 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
                 </div>
 
                 {/* Right: Comments */}
-                <div className="w-full md:w-1/2 flex flex-col bg-[#050B14] min-h-[300px]">
+                <div className="w-full md:w-1/2 flex flex-col bg-[#050B14] min-h-[300px] overscroll-contain">
                     <div className="p-4 md:p-6 border-b border-white/5 bg-[#050B14] sticky top-0 z-10">
                         <h3 className="font-title text-lg md:text-xl text-knight-accent tracking-widest flex items-center gap-2">
                             <MessageCircle className="w-5 h-5" /> Comments
@@ -325,7 +334,7 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
                         ))}
                     </div>
 
-                    <div className="p-4 md:p-6 bg-[#0F1E26] border-t border-white/5 absolute bottom-0 w-full md:relative">
+                    <div className="p-4 md:p-6 bg-[#0F1E26] border-t border-white/5 absolute bottom-0 w-full md:relative pb-[calc(env(safe-area-inset-bottom)+1rem)] md:pb-6">
                         <div className="flex gap-3">
                             <Avatar user={currentUser} className="w-8 md:w-10 h-8 md:h-10 shrink-0 opacity-50" />
                             <div className="flex-grow relative">
@@ -334,7 +343,7 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
                                     value={commentInput}
                                     onChange={(e) => setCommentInput(e.target.value)}
                                     placeholder="Leave an echo..."
-                                    className="w-full bg-black/20 border border-knight-accent/10 rounded-full px-4 py-2 text-sm md:text-base text-knight-accent focus:outline-none focus:border-knight-glow/50 transition-colors pr-10"
+                                    className="w-full bg-black/20 border border-knight-accent/10 rounded-full px-4 py-2 text-base text-knight-accent focus:outline-none focus:border-knight-glow/50 transition-colors pr-10"
                                     onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
                                 />
                                 <button 
