@@ -2,8 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Note, UserProfile, Comment } from '../types';
 import { Heart, Pin, Image as ImageIcon, X, MessageCircle, Trash2, Send } from 'lucide-react';
-import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, updateDoc, arrayUnion } from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabaseApi } from '../supabase';
 
 interface MessageBoardProps {
   currentUser: UserProfile;
@@ -23,18 +22,26 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Firestore Sync
+  // Supabase Sync
   useEffect(() => {
-    const q = query(collection(db, 'notes'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedNotes = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Note[];
-      setNotes(fetchedNotes);
-      setLoading(false);
-    });
-    return () => unsubscribe();
+    const fetchNotes = async () => {
+      try {
+        const fetchedNotes = await supabaseApi.getNotes();
+        setNotes(fetchedNotes);
+      } catch (error) {
+        console.error('Error fetching notes:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNotes();
+
+    const timer = window.setInterval(fetchNotes, 5000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
   }, []);
 
   const [inputText, setInputText] = useState('');
@@ -62,15 +69,12 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
     if (!inputText.trim() && !selectedImage) return;
 
     try {
-      await addDoc(collection(db, 'notes'), {
+      await supabaseApi.createNote({
         text: inputText,
-        imageUrl: selectedImage || null,
-        liked: false,
-        timestamp: new Date().toLocaleString(),
-        createdAt: Date.now(), // for sorting
+        imageUrl: selectedImage,
         author: currentUser,
-        comments: []
       });
+
       setInputText('');
       setSelectedImage(null);
     } catch (e) {
@@ -81,7 +85,7 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     try {
-      await deleteDoc(doc(db, 'notes', id));
+      await supabaseApi.deleteNote(id);
       if (activeNoteId === id) setActiveNoteId(null);
     } catch (error) {
        console.error("Error removing note: ", error);
@@ -93,9 +97,7 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
     const note = notes.find(n => n.id === id);
     if (note) {
       try {
-        await updateDoc(doc(db, 'notes', id), {
-            liked: !note.liked
-        });
+        await supabaseApi.updateNote(id, { liked: !note.liked });
       } catch (error) {
         console.error("Error updating like: ", error);
       }
@@ -113,9 +115,11 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
     };
 
     try {
-        await updateDoc(doc(db, 'notes', activeNoteId), {
-            comments: arrayUnion(newComment)
-        });
+        const targetNote = notes.find((note) => note.id === activeNoteId);
+        if (!targetNote) return;
+
+        await supabaseApi.updateNote(activeNoteId, { comments: [...targetNote.comments, newComment] });
+
         setCommentInput('');
     } catch (error) {
         console.error("Error adding comment: ", error);

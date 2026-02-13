@@ -2,8 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MoodType, MOODS, DailyData, UserProfile } from '../types';
 import { X, Bookmark } from 'lucide-react';
-import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabaseApi } from '../supabase';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -17,23 +16,26 @@ interface MoodCalendarProps {
 const MoodCalendar: React.FC<MoodCalendarProps> = ({ currentUser }) => {
   const [currentData, setCurrentData] = useState<Record<string, DailyData>>({});
   const year = 2026;
-  const docId = `${currentUser}_${year}`;
 
-  // Firestore Sync
+  // Supabase Sync
   useEffect(() => {
-    const docRef = doc(db, 'calendar', docId);
-    
-    const unsubscribe = onSnapshot(docRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setCurrentData(docSnap.data() as Record<string, DailyData>);
-      } else {
-        // Doc doesn't exist yet, that's fine, we'll create it on first write
-        setCurrentData({});
+    const fetchCalendarEntries = async () => {
+      try {
+        const map = await supabaseApi.getCalendarEntries(currentUser, year);
+        setCurrentData(map);
+      } catch (error) {
+        console.error('Error fetching calendar entries:', error);
       }
-    });
+    };
 
-    return () => unsubscribe();
-  }, [currentUser, docId]);
+    fetchCalendarEntries();
+
+    const timer = window.setInterval(fetchCalendarEntries, 5000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [currentUser, year]);
   
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showJournalModal, setShowJournalModal] = useState(false);
@@ -118,17 +120,9 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ currentUser }) => {
     }
   };
 
-  const updateFirestore = async (dateStr: string, newData: DailyData) => {
-    const docRef = doc(db, 'calendar', docId);
-    
-    // We need to construct the update object dynamically for nested fields
-    // Firestore allows "dot notation" for updating map fields: "2025-01-01.mood"
+  const upsertCalendarEntry = async (dateStr: string, newData: DailyData) => {
     try {
-        // Check if doc exists first to decide between setDoc (merge) or updateDoc
-        // But setDoc with merge is usually safer for "create if not exists"
-        await setDoc(docRef, {
-            [dateStr]: newData
-        }, { merge: true });
+        await supabaseApi.upsertCalendarEntry(currentUser, dateStr, newData);
     } catch (e) {
         console.error("Error updating calendar:", e);
     }
@@ -142,7 +136,7 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ currentUser }) => {
       // Optimistic update
       setCurrentData(prev => ({ ...prev, [selectedDate]: newData }));
       
-      updateFirestore(selectedDate, newData);
+      upsertCalendarEntry(selectedDate, newData);
 
       // Only close if we are in the simple selection mode
       if (!showJournalModal) setSelectedDate(null);
@@ -157,7 +151,7 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ currentUser }) => {
       // Optimistic update
       setCurrentData(prev => ({ ...prev, [selectedDate]: newData }));
       
-      updateFirestore(selectedDate, newData);
+      upsertCalendarEntry(selectedDate, newData);
       
       closeAllModals();
     }
