@@ -77,19 +77,40 @@ export const supabaseApi = {
     }));
   },
 
-  async createNote(input: { text: string; imageUrl?: string | null; author: UserProfile }): Promise<void> {
-    await request('/notes', {
+  async createNote(input: { text: string; imageUrl?: string | null; author: UserProfile; timestamp?: string }): Promise<Note> {
+    const timestamp = input.timestamp || new Date().toLocaleString();
+
+    const rows = await request<Array<{
+      id: string;
+      text: string;
+      image_url: string | null;
+      liked: boolean;
+      timestamp_text: string;
+      author: UserProfile;
+      comments: Comment[] | null;
+    }>>('/notes?select=id,text,image_url,liked,timestamp_text,author,comments', {
       method: 'POST',
-      headers: { Prefer: 'return=minimal' },
+      headers: { Prefer: 'return=representation' },
       body: JSON.stringify({
         text: input.text,
         image_url: input.imageUrl || null,
         liked: false,
-        timestamp_text: new Date().toLocaleString(),
+        timestamp_text: timestamp,
         author: input.author,
         comments: [],
       }),
     });
+
+    const created = rows[0];
+    return {
+      id: created.id,
+      text: created.text,
+      imageUrl: created.image_url || undefined,
+      liked: created.liked,
+      timestamp: created.timestamp_text,
+      author: created.author,
+      comments: created.comments || [],
+    };
   },
 
   async deleteNote(id: string): Promise<void> {

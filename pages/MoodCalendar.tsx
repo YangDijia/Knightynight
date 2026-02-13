@@ -239,7 +239,7 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ currentUser }) => {
                   return (
                     <div 
                       key={day}
-                      className="relative flex flex-col items-center justify-center aspect-square"
+                      className="relative flex flex-col items-center justify-center aspect-square select-none"
                       onMouseDown={() => startPress(dateStr)}
                       onMouseUp={cancelPress}
                       onMouseLeave={cancelPress}
@@ -248,15 +248,17 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ currentUser }) => {
                       onClick={() => handleDayClick(dateStr)}
                     >
                       <button
+                        type="button"
+                        draggable={false}
                         className={`
-                          w-8 h-8 md:w-10 md:h-10 flex items-center justify-center transition-all duration-300 relative rounded-lg
+                          w-8 h-8 md:w-10 md:h-10 flex items-center justify-center transition-all duration-300 relative rounded-lg select-none touch-manipulation
                           ${data.mood 
                             ? 'scale-110 z-10'
                             : 'hover:bg-white/5 hover:text-white'}
                         `}
                       >
                         {data.mood && (
-                          <span className="text-lg md:text-xl filter drop-shadow-[0_0_8px_rgba(255,255,255,0.4)] animate-[fadeIn_0.3s_ease-out]">
+                          <span className="text-lg md:text-xl filter drop-shadow-[0_0_8px_rgba(255,255,255,0.4)] animate-[fadeIn_0.3s_ease-out] select-none">
                             {MOODS[data.mood]}
                           </span>
                         )}
@@ -331,7 +333,7 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ currentUser }) => {
       {showJournalModal && selectedDate && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl animate-fade-in p-0 md:p-4" onClick={closeAllModals}>
            <div className="bg-[#0F1E26] w-full md:max-w-2xl h-full md:h-[80vh] border-y md:border border-knight-accent/20 md:rounded-lg shadow-2xl flex flex-col relative" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center p-6 border-b border-white/5 bg-[#0F1E26] z-10">
+              <div className="flex justify-between items-center px-4 pb-4 pt-16 md:p-6 border-b border-white/5 bg-[#0F1E26] z-10">
                   <div className="flex flex-col">
                       <span className="font-title text-xl text-white tracking-widest">Journal</span>
                       <span className="font-mono text-xs text-knight-accent/50">{selectedDate}</span>
