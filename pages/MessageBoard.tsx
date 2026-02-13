@@ -85,15 +85,6 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
   const handlePost = async () => {
     if ((!inputText.trim() && !selectedImage) || isPosting) return;
 
-    const textToPost = inputText;
-    const imageToPost = selectedImage;
-
-    setInputText('');
-    setSelectedImage(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-
     setIsPosting(true);
 
     try {
@@ -102,7 +93,12 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
         imageUrl: imageToPost,
         author: currentUser,
       });
-      fetchNotes(false);
+
+      setInputText('');
+      setSelectedImage(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     } catch (e) {
       setInputText(textToPost);
       setSelectedImage(imageToPost || null);
