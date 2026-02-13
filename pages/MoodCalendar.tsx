@@ -333,7 +333,7 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ currentUser }) => {
       {showJournalModal && selectedDate && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl animate-fade-in p-0 md:p-4" onClick={closeAllModals}>
            <div className="bg-[#0F1E26] w-full md:max-w-2xl h-full md:h-[80vh] border-y md:border border-knight-accent/20 md:rounded-lg shadow-2xl flex flex-col relative" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center px-4 pb-4 pt-16 md:p-6 border-b border-white/5 bg-[#0F1E26] z-10">
+              <div className="flex justify-between items-center px-4 pb-4 pt-12 md:p-6 border-b border-white/5 bg-[#0F1E26] z-10">
                   <div className="flex flex-col">
                       <span className="font-title text-xl text-white tracking-widest">Journal</span>
                       <span className="font-mono text-xs text-knight-accent/50">{selectedDate}</span>
