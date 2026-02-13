@@ -85,40 +85,22 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
   const handlePost = async () => {
     if ((!inputText.trim() && !selectedImage) || isPosting) return;
 
-    const textToPost = inputText;
-    const imageToPost = selectedImage;
-    const timestamp = new Date().toLocaleString();
-    const optimisticId = `optimistic-${Date.now()}`;
-    const optimisticNote: Note = {
-      id: optimisticId,
-      text: textToPost,
-      imageUrl: imageToPost || undefined,
-      liked: false,
-      timestamp,
-      author: currentUser,
-      comments: [],
-    };
-
-    setNotes(prev => [optimisticNote, ...prev]);
-    setInputText('');
-    setSelectedImage(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-
     setIsPosting(true);
 
     try {
-      const createdNote = await supabaseApi.createNote({
+      await supabaseApi.createNote({
         text: textToPost,
         imageUrl: imageToPost,
         author: currentUser,
         timestamp,
       });
 
-      setNotes(prev => prev.map(note => note.id === optimisticId ? createdNote : note));
+      setInputText('');
+      setSelectedImage(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     } catch (e) {
-      setNotes(prev => prev.filter(note => note.id !== optimisticId));
       setInputText(textToPost);
       setSelectedImage(imageToPost || null);
       console.error("Error adding document: ", e);
