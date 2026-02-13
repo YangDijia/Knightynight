@@ -10,11 +10,22 @@ View your app in AI Studio: https://ai.studio/apps/drive/1gTBm1DazFz2z1Nj1fNRIFS
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
-
+**Prerequisites:** Node.js
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
+2. Create `.env.local` and set:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+3. Initialize your Supabase tables by running the SQL in `supabase/schema.sql` (Supabase SQL Editor).
+4. Run the app:
    `npm run dev`
+
+## Supabase migration notes
+
+This project now uses Supabase instead of Firestore for:
+- Bench resting state (`bench_status`)
+- Message board notes and comments (`notes`)
+- Mood calendar entries (`calendar_entries`)
+
+If you are migrating existing Firestore data, export your Firestore collections and import them into the matching Supabase tables.

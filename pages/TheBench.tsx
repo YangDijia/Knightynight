@@ -2,8 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Wind, Flame, Bug, Sliders } from 'lucide-react';
 import { UserProfile } from '../types';
-import { doc, onSnapshot, setDoc, updateDoc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabaseApi } from '../supabase';
 
 interface AudioState {
   fire: number;
@@ -28,20 +27,24 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
     bug: 0,
   });
 
-  // Firestore Synchronization for Resting State
+  // Supabase Synchronization for Resting State
   useEffect(() => {
-    const benchRef = doc(db, 'status', 'bench');
-    
-    const unsubscribe = onSnapshot(benchRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setRestingState(docSnap.data() as Record<UserProfile, boolean>);
-      } else {
-        // Initialize if doesn't exist
-        setDoc(benchRef, { 'Knight': false, 'Hornet': false });
+    const fetchBenchStatus = async () => {
+      try {
+        const state = await supabaseApi.getBenchStatus();
+        setRestingState(state);
+      } catch (error) {
+        console.error('Error fetching bench status:', error);
       }
-    });
+    };
 
-    return () => unsubscribe();
+    fetchBenchStatus();
+
+    const timer = window.setInterval(fetchBenchStatus, 5000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
   }, []);
 
   const toggleRest = async () => {
@@ -53,10 +56,7 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
     }));
 
     try {
-      const benchRef = doc(db, 'status', 'bench');
-      await updateDoc(benchRef, {
-        [currentUser]: newState
-      });
+      await supabaseApi.updateBenchStatus(currentUser, newState);
     } catch (error) {
       console.error("Error updating bench status:", error);
       // Revert on error
