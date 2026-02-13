@@ -113,9 +113,6 @@ const Layout: React.FC<LayoutProps> = ({ currentPage, setCurrentPage, currentUse
         <ThornFiligreeCorner className="bottom-4 left-4 md:bottom-6 md:left-6 transform -scale-y-100 hidden md:block" />
         <ThornFiligreeCorner className="bottom-4 right-4 md:bottom-6 md:right-6 transform -scale-x-100 -scale-y-100 hidden md:block" />
         
-        {/* Dashed lines - lighter on mobile */}
-        <div className="absolute top-8 left-1/2 -translate-x-1/2 w-[90%] md:w-[calc(100%-300px)] h-px border-t border-knight-accent/20 border-dashed opacity-50 md:opacity-100"></div>
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[90%] md:w-[calc(100%-300px)] h-px border-b border-knight-accent/20 border-dashed opacity-50 md:opacity-100"></div>
       </div>
 
       {/* Navigation */}
