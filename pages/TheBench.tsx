@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Wind, Flame, Bug, Sliders } from 'lucide-react';
+import { X, Wind, Flame, Bug, Sliders, Music } from 'lucide-react';
 import { UserProfile } from '../types';
 import { supabaseApi } from '../supabase';
 
@@ -19,8 +19,8 @@ interface TheBenchProps {
 const BENCH_AUDIO_FILES = {
   fire: '/audio/fire.mp3',
   wind: '/audio/wind.mp3',
-  bug: '/audio/greenpath.mp3',
-  smile: '/audio/smile.mp3',
+  bug: '/audio/bug.mp3',
+  smile: '/audio/music.mp3',
 } as const;
 
 type BenchTrack = keyof typeof BENCH_AUDIO_FILES;
@@ -252,7 +252,7 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
             { id: 'fire', icon: Flame, label: 'Bonfire' },
             { id: 'wind', icon: Wind, label: 'Wind' },
             { id: 'bug', icon: Bug, label: 'Chirp' },
-            { id: 'smile', icon: Bug, label: ':)' }
+            { id: 'smile', icon: Music, label: ':)' }
           ].map((track) => (
             <div key={track.id} className="space-y-2 group">
               <div className="flex items-center gap-3 text-knight-accent/60 group-hover:text-knight-glow transition-colors">
