@@ -88,7 +88,6 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
     const textToPost = inputText;
     const imageToPost = selectedImage;
     const timestamp = new Date().toLocaleString();
-    const optimisticId = `temp-${Date.now()}`;
 
     setIsPosting(true);
     setNotes((prev) => [
