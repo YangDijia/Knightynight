@@ -116,7 +116,11 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
           // User interaction is required for audio to play in browsers
           audio.play().catch(e => console.log("Audio play failed (interaction needed):", e));
         } else if (volume === 0 && !audio.paused) {
-          audio.pause();
+          window.setTimeout(() => {
+            if (audio.volume === 0) {
+              audio.pause();
+            }
+          }, 220);
         }
       }
     });
@@ -264,7 +268,8 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
                 min="0" max="100" 
                 value={volumes[track.id as keyof AudioState]}
                 onChange={(e) => handleVolumeChange(track.id as keyof AudioState, e.target.value)}
-                className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-knight-accent hover:accent-knight-glow"
+                onInput={(e) => handleVolumeChange(track.id as keyof AudioState, (e.target as HTMLInputElement).value)}
+                className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-knight-accent hover:accent-knight-glow touch-pan-x"
               />
             </div>
           ))}

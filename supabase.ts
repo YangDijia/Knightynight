@@ -102,6 +102,19 @@ export const supabaseApi = {
     });
 
     const created = rows[0];
+
+    if (!created) {
+      return {
+        id: `pending-${Date.now()}`,
+        text: input.text,
+        imageUrl: input.imageUrl || undefined,
+        liked: false,
+        timestamp,
+        author: input.author,
+        comments: [],
+      };
+    }
+
     return {
       id: created.id,
       text: created.text,
