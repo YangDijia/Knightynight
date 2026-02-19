@@ -85,27 +85,47 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
   const handlePost = async () => {
     if ((!inputText.trim() && !selectedImage) || isPosting) return;
 
+    const textToPost = inputText;
+    const imageToPost = selectedImage;
+    const timestamp = new Date().toLocaleString();
+    const optimisticId = `temp-${Date.now()}`;
+
     setIsPosting(true);
+    setNotes((prev) => [
+      {
+        id: optimisticId,
+        text: textToPost,
+        imageUrl: imageToPost || undefined,
+        liked: false,
+        timestamp,
+        author: currentUser,
+        comments: [],
+      },
+      ...prev,
+    ]);
 
     try {
-      await supabaseApi.createNote({
+      const createdNote = await supabaseApi.createNote({
         text: textToPost,
         imageUrl: imageToPost,
         author: currentUser,
         timestamp,
       });
 
+      setNotes((prev) => prev.map((note) => (note.id === optimisticId ? createdNote : note)));
       setInputText('');
       setSelectedImage(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     } catch (e) {
+      setNotes((prev) => prev.filter((note) => note.id !== optimisticId));
       setInputText(textToPost);
       setSelectedImage(imageToPost || null);
       console.error("Error adding document: ", e);
     } finally {
       setIsPosting(false);
+      fetchNotes(false);
     }
   };
 
@@ -228,7 +248,6 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
             </button>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
             <button onClick={handlePost} disabled={isPosting}
-              onTouchEnd={(e) => e.currentTarget.blur()}
               className={`flex items-center justify-center gap-2 px-8 py-3 border rounded-sm font-title tracking-widest uppercase transition-all duration-300 ${isPosting ? 'bg-knight-glow/20 border-knight-glow/40 text-black/70' : 'bg-knight-glow/10 border-knight-glow/30 text-knight-glow md:hover:bg-knight-glow md:hover:text-black md:hover:shadow-glow'} disabled:cursor-not-allowed`}
             >
               <Pin className="w-4 h-4" /> <span>{isPosting ? 'Sending...' : 'Pin'}</span>
