@@ -26,6 +26,8 @@ const BENCH_AUDIO_FILES = {
 type BenchTrack = keyof typeof BENCH_AUDIO_FILES;
 
 const sharedAudioRefs: Partial<Record<BenchTrack, HTMLAudioElement>> = {};
+const sharedGainNodes: Partial<Record<BenchTrack, GainNode>> = {};
+let sharedAudioContext: AudioContext | null = null;
 let sharedVolumes: AudioState = {
   fire: 0,
   wind: 0,
@@ -40,8 +42,33 @@ const ensureSharedAudio = () => {
     const audio = new Audio(BENCH_AUDIO_FILES[key]);
     audio.loop = true;
     audio.preload = 'auto';
+    audio.crossOrigin = 'anonymous';
     audio.volume = sharedVolumes[key] / 100;
     sharedAudioRefs[key] = audio;
+  });
+};
+
+const ensureAudioContext = () => {
+  if (typeof window === 'undefined') return;
+
+  if (!sharedAudioContext) {
+    const Context = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Context) {
+      return;
+    }
+    sharedAudioContext = new Context();
+  }
+
+  (Object.keys(BENCH_AUDIO_FILES) as BenchTrack[]).forEach((key) => {
+    const audio = sharedAudioRefs[key];
+    if (!audio || sharedGainNodes[key] || !sharedAudioContext) return;
+
+    const source = sharedAudioContext.createMediaElementSource(audio);
+    const gain = sharedAudioContext.createGain();
+    gain.gain.value = sharedVolumes[key] / 100;
+    source.connect(gain);
+    gain.connect(sharedAudioContext.destination);
+    sharedGainNodes[key] = gain;
   });
 };
 
@@ -100,6 +127,24 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
     ensureSharedAudio();
   }, []);
 
+
+  useEffect(() => {
+    const unlockAudio = () => {
+      ensureAudioContext();
+      if (sharedAudioContext?.state === 'suspended') {
+        sharedAudioContext.resume().catch((e) => console.log('Audio context resume failed:', e));
+      }
+    };
+
+    window.addEventListener('pointerdown', unlockAudio, { passive: true });
+    window.addEventListener('touchstart', unlockAudio, { passive: true });
+
+    return () => {
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+  }, []);
+
   // Sync volumes to shared Audio Elements
   useEffect(() => {
     sharedVolumes = volumes;
@@ -108,20 +153,26 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
       const audio = sharedAudioRefs[key];
       const volume = volumes[key] / 100;
 
-      if (audio) {
-        audio.volume = volume;
+      if (!audio) return;
 
-        // Auto play/pause logic based on volume
-        if (volume > 0 && audio.paused) {
-          // User interaction is required for audio to play in browsers
-          audio.play().catch(e => console.log("Audio play failed (interaction needed):", e));
-        } else if (volume === 0 && !audio.paused) {
-          window.setTimeout(() => {
-            if (audio.volume === 0) {
-              audio.pause();
-            }
-          }, 220);
-        }
+      // HTMLAudioElement.volume is ignored on some mobile browsers (e.g. iOS Safari).
+      // Use GainNode when possible so the slider works on mobile too.
+      const gainNode = sharedGainNodes[key];
+      if (gainNode) {
+        gainNode.gain.value = volume;
+      }
+      audio.volume = volume;
+
+      // Auto play/pause logic based on volume
+      if (volume > 0 && audio.paused) {
+        // User interaction is required for audio to play in browsers
+        audio.play().catch((e) => console.log('Audio play failed (interaction needed):', e));
+      } else if (volume === 0 && !audio.paused) {
+        window.setTimeout(() => {
+          if (gainNode ? gainNode.gain.value === 0 : audio.volume === 0) {
+            audio.pause();
+          }
+        }, 220);
       }
     });
   }, [volumes]);
@@ -138,6 +189,11 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
   }, []);
 
   const handleVolumeChange = (type: keyof AudioState, val: string) => {
+    ensureAudioContext();
+    if (sharedAudioContext?.state === 'suspended') {
+      sharedAudioContext.resume().catch((e) => console.log('Audio context resume failed:', e));
+    }
+
     setVolumes(prev => ({ ...prev, [type]: parseInt(val, 10) }));
   };
 
