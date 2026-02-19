@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Wind, Flame, Bug, Sliders } from 'lucide-react';
+import { X, Wind, Flame, Bug, Sliders, Music } from 'lucide-react';
 import { UserProfile } from '../types';
 import { supabaseApi } from '../supabase';
 
@@ -19,8 +19,8 @@ interface TheBenchProps {
 const BENCH_AUDIO_FILES = {
   fire: '/audio/fire.mp3',
   wind: '/audio/wind.mp3',
-  bug: '/audio/greenpath.mp3',
-  smile: '/audio/smile.mp3',
+  bug: '/audio/bug.mp3',
+  smile: '/audio/music.mp3',
 } as const;
 
 type BenchTrack = keyof typeof BENCH_AUDIO_FILES;
@@ -31,57 +31,6 @@ let sharedVolumes: AudioState = {
   wind: 0,
   bug: 0,
   smile: 0,
-};
-
-const volumeTweenRefs: Partial<Record<BenchTrack, number>> = {};
-let hasUnlockedAudio = false;
-
-const smoothSetVolume = (track: BenchTrack, targetVolume: number, durationMs = 180) => {
-  const audio = sharedAudioRefs[track];
-  if (!audio) return;
-
-  const startVolume = audio.volume;
-  const delta = targetVolume - startVolume;
-
-  if (Math.abs(delta) < 0.001) return;
-
-  if (volumeTweenRefs[track]) {
-    cancelAnimationFrame(volumeTweenRefs[track]);
-  }
-
-  const startAt = performance.now();
-  const step = (now: number) => {
-    const progress = Math.min((now - startAt) / durationMs, 1);
-    audio.volume = startVolume + delta * progress;
-
-    if (progress < 1) {
-      volumeTweenRefs[track] = requestAnimationFrame(step);
-    } else {
-      volumeTweenRefs[track] = undefined;
-    }
-  };
-
-  volumeTweenRefs[track] = requestAnimationFrame(step);
-};
-
-const unlockAudioPlayback = () => {
-  if (hasUnlockedAudio) return;
-
-  hasUnlockedAudio = true;
-  (Object.keys(BENCH_AUDIO_FILES) as BenchTrack[]).forEach((key) => {
-    const audio = sharedAudioRefs[key];
-    if (!audio) return;
-
-    const originalVolume = audio.volume;
-    audio.volume = 0;
-    audio.play().then(() => {
-      audio.pause();
-      audio.currentTime = 0;
-      audio.volume = originalVolume;
-    }).catch(() => {
-      audio.volume = originalVolume;
-    });
-  });
 };
 
 const ensureSharedAudio = () => {
@@ -160,7 +109,7 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
       const volume = volumes[key] / 100;
 
       if (audio) {
-        smoothSetVolume(key as BenchTrack, volume);
+        audio.volume = volume;
 
         // Auto play/pause logic based on volume
         if (volume > 0 && audio.paused) {
@@ -189,29 +138,7 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
   }, []);
 
   const handleVolumeChange = (type: keyof AudioState, val: string) => {
-    ensureSharedAudio();
-    unlockAudioPlayback();
-
-    const nextValue = parseInt(val, 10);
-    const audio = sharedAudioRefs[type as BenchTrack];
-
-    if (audio) {
-      const targetVolume = nextValue / 100;
-      smoothSetVolume(type as BenchTrack, targetVolume);
-
-      if (targetVolume > 0 && audio.paused) {
-        audio.play().catch(e => console.log("Audio play failed (interaction needed):", e));
-      }
-      if (targetVolume === 0 && !audio.paused) {
-        window.setTimeout(() => {
-          if (audio.volume === 0) {
-            audio.pause();
-          }
-        }, 220);
-      }
-    }
-
-    setVolumes(prev => ({ ...prev, [type]: nextValue }));
+    setVolumes(prev => ({ ...prev, [type]: parseInt(val, 10) }));
   };
 
   // Gothic Bench Illustration
@@ -329,7 +256,7 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
             { id: 'fire', icon: Flame, label: 'Bonfire' },
             { id: 'wind', icon: Wind, label: 'Wind' },
             { id: 'bug', icon: Bug, label: 'Chirp' },
-            { id: 'smile', icon: Bug, label: ':)' }
+            { id: 'smile', icon: Music, label: ':)' }
           ].map((track) => (
             <div key={track.id} className="space-y-2 group">
               <div className="flex items-center gap-3 text-knight-accent/60 group-hover:text-knight-glow transition-colors">

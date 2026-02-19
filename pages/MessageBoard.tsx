@@ -88,7 +88,6 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
     const textToPost = inputText;
     const imageToPost = selectedImage;
     const timestamp = new Date().toLocaleString();
-    const optimisticId = `temp-${Date.now()}`;
 
     setIsPosting(true);
     setNotes((prev) => [
@@ -112,12 +111,7 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
         timestamp,
       });
 
-      if (createdNote.id.startsWith('pending-')) {
-        setNotes((prev) => prev.filter((note) => note.id !== optimisticId));
-      } else {
-        setNotes((prev) => prev.map((note) => (note.id === optimisticId ? createdNote : note)));
-      }
-
+      setNotes((prev) => prev.map((note) => (note.id === optimisticId ? createdNote : note)));
       setInputText('');
       setSelectedImage(null);
       if (fileInputRef.current) {
