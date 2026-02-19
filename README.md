@@ -37,5 +37,6 @@ To make the Bench ambience sliders work, add these files under `public/audio/`:
 - `public/audio/fire.mp3`
 - `public/audio/wind.mp3`
 - `public/audio/greenpath.mp3`
+- `public/audio/smile.mp3`
 
 These names are hard-coded in `pages/TheBench.tsx`.

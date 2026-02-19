@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Wind, Flame, Bug, Sliders } from 'lucide-react';
 import { UserProfile } from '../types';
 import { supabaseApi } from '../supabase';
@@ -8,6 +8,7 @@ interface AudioState {
   fire: number;
   wind: number;
   bug: number;
+  smile: number;
 }
 
 interface TheBenchProps {
@@ -19,7 +20,30 @@ const BENCH_AUDIO_FILES = {
   fire: '/audio/fire.mp3',
   wind: '/audio/wind.mp3',
   bug: '/audio/greenpath.mp3',
+  smile: '/audio/smile.mp3',
 } as const;
+
+type BenchTrack = keyof typeof BENCH_AUDIO_FILES;
+
+const sharedAudioRefs: Partial<Record<BenchTrack, HTMLAudioElement>> = {};
+let sharedVolumes: AudioState = {
+  fire: 0,
+  wind: 0,
+  bug: 0,
+  smile: 0,
+};
+
+const ensureSharedAudio = () => {
+  (Object.keys(BENCH_AUDIO_FILES) as BenchTrack[]).forEach((key) => {
+    if (sharedAudioRefs[key]) return;
+
+    const audio = new Audio(BENCH_AUDIO_FILES[key]);
+    audio.loop = true;
+    audio.preload = 'auto';
+    audio.volume = sharedVolumes[key] / 100;
+    sharedAudioRefs[key] = audio;
+  });
+};
 
 const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
   const [restingState, setRestingState] = useState<Record<UserProfile, boolean>>({
@@ -28,11 +52,7 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
   });
   
   const [showMixer, setShowMixer] = useState(false);
-  const [volumes, setVolumes] = useState<AudioState>({
-    fire: 0,
-    wind: 0,
-    bug: 0,
-  });
+  const [volumes, setVolumes] = useState<AudioState>(sharedVolumes);
 
   // Supabase Synchronization for Resting State
   useEffect(() => {
@@ -74,42 +94,23 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
     }
   };
 
-  // Store HTMLAudioElement references
-  const audioRefs = useRef<Record<string, HTMLAudioElement>>({});
-
-  // Initialize Audio Objects
+  // Initialize shared audio once and keep it alive across page switches
   useEffect(() => {
-    // Put these files in /public/audio/: fire.mp3, wind.mp3, greenpath.mp3
-    audioRefs.current = {
-      fire: new Audio(BENCH_AUDIO_FILES.fire),
-      wind: new Audio(BENCH_AUDIO_FILES.wind),
-      bug: new Audio(BENCH_AUDIO_FILES.bug),
-    };
-
-    // Configure loop and preload
-    Object.values(audioRefs.current).forEach(audio => {
-      audio.loop = true;
-      audio.preload = 'auto';
-    });
-
-    // Cleanup on unmount
-    return () => {
-      Object.values(audioRefs.current).forEach(audio => {
-        audio.pause();
-        audio.src = '';
-      });
-    };
+    // Put these files in /public/audio/: fire.mp3, wind.mp3, greenpath.mp3, smile.mp3
+    ensureSharedAudio();
   }, []);
 
-  // Sync volumes to Audio Elements
+  // Sync volumes to shared Audio Elements
   useEffect(() => {
-    Object.keys(volumes).forEach((key) => {
-      const audio = audioRefs.current[key];
-      const volume = volumes[key as keyof AudioState] / 100;
-      
+    sharedVolumes = volumes;
+
+    (Object.keys(volumes) as Array<keyof AudioState>).forEach((key) => {
+      const audio = sharedAudioRefs[key];
+      const volume = volumes[key] / 100;
+
       if (audio) {
         audio.volume = volume;
-        
+
         // Auto play/pause logic based on volume
         if (volume > 0 && audio.paused) {
           // User interaction is required for audio to play in browsers
@@ -133,7 +134,7 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
   }, []);
 
   const handleVolumeChange = (type: keyof AudioState, val: string) => {
-    setVolumes(prev => ({ ...prev, [type]: parseInt(val) }));
+    setVolumes(prev => ({ ...prev, [type]: parseInt(val, 10) }));
   };
 
   // Gothic Bench Illustration
@@ -250,7 +251,8 @@ const TheBench: React.FC<TheBenchProps> = ({ currentUser }) => {
           {[
             { id: 'fire', icon: Flame, label: 'Bonfire' },
             { id: 'wind', icon: Wind, label: 'Wind' },
-            { id: 'bug', icon: Bug, label: 'Chirp' }
+            { id: 'bug', icon: Bug, label: 'Chirp' },
+            { id: 'smile', icon: Bug, label: ':)' }
           ].map((track) => (
             <div key={track.id} className="space-y-2 group">
               <div className="flex items-center gap-3 text-knight-accent/60 group-hover:text-knight-glow transition-colors">
