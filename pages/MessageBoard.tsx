@@ -85,6 +85,10 @@ const MessageBoard: React.FC<MessageBoardProps> = ({ currentUser }) => {
   const handlePost = async () => {
     if ((!inputText.trim() && !selectedImage) || isPosting) return;
 
+    const textToPost = inputText;
+    const imageToPost = selectedImage;
+    const timestamp = new Date().toLocaleString();
+
     setIsPosting(true);
 
     try {
