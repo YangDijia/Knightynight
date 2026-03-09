@@ -31,14 +31,15 @@ export interface Note {
   comments: Comment[];
 }
 
-export type MoodType = 'happy' | 'sad' | 'angry' | 'neutral' | 'peaceful';
+export type MoodType = 'happy' | 'sad' | 'angry' | 'neutral' | 'peaceful' | 'complicated';
 
 export const MOODS: Record<MoodType, string> = {
   happy: '😊',
-  sad: '😟',
+  sad: '☹️',
   angry: '🤬',
   neutral: '😐',
-  peaceful: '😌'
+  peaceful: '😌',
+  complicated: '❓'
 };
 
 export interface DailyData {
