@@ -1,0 +1,15 @@
+[Unit]
+Description=Knightynight VPS API
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/knightynight/backend
+EnvironmentFile=/opt/knightynight/backend/.env
+ExecStart=/usr/bin/node /opt/knightynight/backend/src/server.js
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
